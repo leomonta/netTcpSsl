@@ -1,0 +1,42 @@
+{
+	"scripts": {
+		"post": "move"
+	},
+	"compiler": {
+		"compiler_style": "gcc",
+		"compiler_exe": "g++",
+		"linker_exe": "ar"
+	},
+
+	"directories": {
+		"project_dir": ".",
+		"exe_path_name": "bin/libnetTcpSsl.a",
+		"include_dirs": [
+			"include",
+			"ext"
+		],
+		"source_dirs": [
+			"src"
+		],
+		"temp_dir": "objs"
+	},
+
+	"debug": {
+		"compiler_args": "-g3 -std=c++2a",
+		"linker_args": "rcs",
+		"libraries_dirs": [
+		],
+		"libraries_names": [
+		]
+
+	},
+
+	"release": {
+		"compiler_args": "-O3 -std=c++2a",
+		"linker_args": "rcs",
+		"libraries_dirs": [
+		],
+		"libraries_names": [
+		]
+	}
+}
