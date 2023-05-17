@@ -123,7 +123,6 @@ SSL *sslConn::createConnection(SSL_CTX *ctx, Socket client) {
 
 void sslConn::destroyConnection(SSL *ssl) {
 	// close the connection and free the data in the struct
-
 	SSL_shutdown(ssl);
 	SSL_free(ssl);
 
