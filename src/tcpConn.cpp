@@ -150,6 +150,35 @@ void tcpConn::shutdownSocket(const Socket sck) {
 	}
 }
 
+int tcpConn::receiveSegmentC(const Socket sck, char* &result) {
+
+	char recvbuf[DEFAULT_BUFLEN];
+	// result is the amount of bytes received
+	int bytesReceived    = DEFAULT_BUFLEN;
+	int totBytesReceived = 0;
+
+	while (bytesReceived == DEFAULT_BUFLEN) {
+		bytesReceived = static_cast<char>(recv(sck, recvbuf, DEFAULT_BUFLEN, 0));
+		totBytesReceived += bytesReceived;
+		realloc(&result, totBytesReceived);
+		memcpy(result, recvbuf, totBytesReceived - bytesReceived);
+	}
+
+	if (totBytesReceived > 0) {
+		log(LOG_INFO, "[Socket %d] Received %ldB from client\n", sck, totBytesReceived);
+	}
+
+	if (totBytesReceived == 0) {
+		log(LOG_INFO, "[Socket %d] Client has shut down the communication\n", sck);
+	}
+
+	if (totBytesReceived < 0) {
+		log(LOG_ERROR, "[Socket %d] Failed to receive message\n	Reason: %d %s\n", sck, errno, strerror(errno));
+	}
+
+	return totBytesReceived;
+}
+
 int tcpConn::receiveSegment(const Socket sck, std::string &result) {
 
 	char recvbuf[DEFAULT_BUFLEN];
@@ -178,20 +207,27 @@ int tcpConn::receiveSegment(const Socket sck, std::string &result) {
 	return totBytesReceived;
 }
 
-long tcpConn::sendSegment(const Socket sck, std::string &buff) {
+long tcpConn::sendSegmentC(const Socket sck, const char* buff) {
 
-	auto bytesSent = send(sck, buff.c_str(), buff.size(), 0);
+	auto size = strlen(buff);
+
+	auto bytesSent = send(sck, buff, size, 0);
 	if (bytesSent < 0) {
 		log(LOG_ERROR, "[TCP] Failed to send message\n	Reason: %d %s\n", errno, strerror(errno));
 	}
 
-	if (bytesSent != static_cast<ssize_t>(buff.size())) {
-		log(LOG_WARNING, "[TCP] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", buff.size(), bytesSent);
+	if (bytesSent != static_cast<ssize_t>(size)) {
+		log(LOG_WARNING, "[TCP] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", size, bytesSent);
 	}
 
 	log(LOG_INFO, "[TCP] Sent %ldB to client %d\n", bytesSent, sck);
 
 	return bytesSent;
+}
+
+long tcpConn::sendSegment(const Socket sck, const std::string &buff) {
+
+	sendSegmentC(sck, buff.c_str());
 }
 
 Socket tcpConn::acceptClientSock(const Socket ssck) {
