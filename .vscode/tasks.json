@@ -33,8 +33,8 @@
 		},
 		{
 			"type": "shell",
-			"label": "C/C++: g++.exe build all modified files, optimized",
-			"command": "cpp_builder.py -o",
+			"label": "C/C++: g++ build all",
+			"command": "./build",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},

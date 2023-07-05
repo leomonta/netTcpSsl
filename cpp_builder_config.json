@@ -1,6 +1,5 @@
 {
 	"scripts": {
-		"post": "move"
 	},
 	"compiler": {
 		"compiler_style": "gcc",

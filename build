@@ -1,0 +1,27 @@
+#!/bin/bash
+
+## includes
+
+sudo cp include/* /usr/local/include
+
+## Debug
+
+cpp_builder.py -a 
+
+if [ $? -eq 0 ]; then
+	sudo cp bin/libnetTcpSsl.a /usr/local/lib/libnetTcpSslDebug.a
+else 
+	echo "Debug build failed, exiting"
+	exit 1
+fi
+
+## Release
+
+cpp_builder.py -a -o
+
+if [ $? -eq 0 ]; then
+	sudo cp bin/libnetTcpSsl.a /usr/local/lib/
+else 
+	echo "Release build failed, exiting"
+	exit 2
+fi
