@@ -1,9 +1,9 @@
 #include "logger.hpp"
 
 #include <pthread.h>
-#include <unistd.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #define RED   "\x1B[031m"
 #define GRN   "\x1B[032m"
