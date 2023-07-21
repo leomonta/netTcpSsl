@@ -21,7 +21,7 @@
 	},
 
 	"debug": {
-		"compiler_args": "-g3 -std=c++2a",
+		"compiler_args": "-g3 -std=c++2a -Wall -Wextra -Wconversion",
 		"linker_args": "rcs",
 		"libraries_dirs": [
 		],

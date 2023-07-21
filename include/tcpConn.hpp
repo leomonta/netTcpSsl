@@ -44,12 +44,12 @@ namespace tcpConn {
 	 * receive a segment from the specified socket
 	 * @return the amount of bytes sent
 	 */
-	int receiveSegmentC(const Socket sck, char* &res);
+	ssize_t receiveSegmentC(const Socket sck, char* &res);
 	
 	/**
 	 * Same as receiveSegmentC but uses std::string
 	 */
-	int receiveSegment(const Socket sck, std::string &result);
+	ssize_t receiveSegment(const Socket sck, std::string &result);
 
 	/**
 	 * send a segment through specified socket

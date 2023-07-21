@@ -150,17 +150,17 @@ void tcpConn::shutdownSocket(const Socket sck) {
 	}
 }
 
-int tcpConn::receiveSegmentC(const Socket sck, char *&result) {
+ssize_t tcpConn::receiveSegmentC(const Socket sck, char *&result) {
 
 	char recvbuf[DEFAULT_BUFLEN];
 	// result is the amount of bytes received
-	int bytesReceived    = DEFAULT_BUFLEN;
-	int totBytesReceived = 0;
+	ssize_t bytesReceived    = DEFAULT_BUFLEN;
+	ssize_t totBytesReceived = 0;
 
 	while (bytesReceived == DEFAULT_BUFLEN) {
-		bytesReceived = static_cast<char>(recv(sck, recvbuf, DEFAULT_BUFLEN, 0));
+		bytesReceived = recv(sck, recvbuf, DEFAULT_BUFLEN, 0);
 		totBytesReceived += bytesReceived;
-		result = static_cast<char*>(realloc(result, totBytesReceived));
+		result = static_cast<char *>(realloc(result, totBytesReceived));
 		memcpy(result, recvbuf, totBytesReceived - bytesReceived);
 	}
 
@@ -179,15 +179,15 @@ int tcpConn::receiveSegmentC(const Socket sck, char *&result) {
 	return totBytesReceived;
 }
 
-int tcpConn::receiveSegment(const Socket sck, std::string &result) {
+ssize_t tcpConn::receiveSegment(const Socket sck, std::string &result) {
 
 	char recvbuf[DEFAULT_BUFLEN];
 	// result is the amount of bytes received
-	int bytesReceived    = DEFAULT_BUFLEN;
-	int totBytesReceived = 0;
+	ssize_t bytesReceived    = DEFAULT_BUFLEN;
+	ssize_t totBytesReceived = 0;
 
 	while (bytesReceived == DEFAULT_BUFLEN) {
-		bytesReceived = static_cast<char>(recv(sck, recvbuf, DEFAULT_BUFLEN, 0));
+		bytesReceived = recv(sck, recvbuf, DEFAULT_BUFLEN, 0);
 		totBytesReceived += bytesReceived;
 		result.append(recvbuf, totBytesReceived);
 	}
