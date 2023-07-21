@@ -159,9 +159,10 @@ ssize_t tcpConn::receiveSegmentC(const Socket sck, char *&result) {
 
 	while (bytesReceived == DEFAULT_BUFLEN) {
 		bytesReceived = recv(sck, recvbuf, DEFAULT_BUFLEN, 0);
+		result = static_cast<char *>(realloc(result, bytesReceived + totBytesReceived + 1));
+		memcpy(result, recvbuf, bytesReceived - totBytesReceived);
 		totBytesReceived += bytesReceived;
-		result = static_cast<char *>(realloc(result, totBytesReceived));
-		memcpy(result, recvbuf, totBytesReceived - bytesReceived);
+		result[totBytesReceived] = '\0';
 	}
 
 	if (totBytesReceived > 0) {
