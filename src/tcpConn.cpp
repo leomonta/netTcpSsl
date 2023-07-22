@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-Socket tcpConn::initializeServer(const unsigned port, const char protocol) {
+Socket tcpConn::initializeServer(const unsigned short port, const char protocol) {
 
 	// switch the code on the protocol
 	auto protCode = protocol == 6 ? AF_INET6 : AF_INET;
@@ -87,7 +87,7 @@ Socket tcpConn::initializeServer(const unsigned port, const char protocol) {
 	return serverSocket;
 }
 
-Socket tcpConn::initializeClient(const unsigned port, const char *server_name, const char protocol) {
+Socket tcpConn::initializeClient(const unsigned short port, const char *server_name, const char protocol) {
 
 	auto protCode = protocol == 6 ? AF_INET6 : AF_INET;
 

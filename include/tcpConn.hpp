@@ -17,13 +17,13 @@ namespace tcpConn {
 	 * setup a server listening on the given port with the requested IPv protocol
 	 * @return the server socket
 	 */
-	Socket initializeServer(const unsigned port, const char protocol = 4);
+	Socket initializeServer(const unsigned short port, const char protocol = 4);
 
 	/**
 	 * setup a client connected to server_name, with the requested IPv protocol
 	 * @return the client socket
 	 */
-	Socket initializeClient(const unsigned port, const char *server_name, const char protocol = 4);
+	Socket initializeClient(const unsigned short port, const char *server_name, const char protocol = 4);
 
 	/**
 	 * shorthand to close and shutdown a socket
