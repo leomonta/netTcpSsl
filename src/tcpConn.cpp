@@ -82,7 +82,7 @@ Socket tcpConn::initializeServer(const unsigned short port, const char protocol)
 		return INVALID_SOCKET;
 	}
 
-	log(LOG_DEBUG, "[TCP] Socket server creation completed");
+	log(LOG_DEBUG, "[TCP] Socket server creation completed\n");
 
 	return serverSocket;
 }
