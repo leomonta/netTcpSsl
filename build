@@ -6,7 +6,7 @@ sudo cp include/* /usr/local/include
 
 ## Debug
 
-cpp_builder.py -a 
+cpp_builder.py -a -p debug
 
 if [ $? -eq 0 ]; then
 	sudo cp bin/libnetTcpSsl.a /usr/local/lib/libnetTcpSslDebug.a
@@ -17,7 +17,7 @@ fi
 
 ## Release
 
-cpp_builder.py -a -o
+cpp_builder.py -a -p release
 
 if [ $? -eq 0 ]; then
 	sudo cp bin/libnetTcpSsl.a /usr/local/lib/

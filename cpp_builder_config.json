@@ -17,7 +17,7 @@
 		"source_dirs": [
 			"src"
 		],
-		"temp_dir": "objs"
+		"temp_dir": "obj"
 	},
 
 	"debug": {
