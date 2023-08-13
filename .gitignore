@@ -1,4 +1,4 @@
-objs/*
+obj/*
 bin/*
 files_hash.txt
 
