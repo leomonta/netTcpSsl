@@ -9,4 +9,4 @@
 
 void log(const char logLevel, const char *mex, ...);
 
-void setLogLevel(const char minLogLevel);
+void setLogLevel(const char newLogLevel);
