@@ -1,6 +1,7 @@
 #include "sslConn.hpp"
 
-#include <logger.hpp>
+#include "logger.hpp"
+
 #include <openssl/err.h>
 
 const char *sslErrStr[]{
@@ -94,7 +95,7 @@ void sslConn::destroyContext(SSL_CTX *ctx) {
 	log(LOG_DEBUG, "[SSL] Context destroyed\n");
 }
 
-SSL *sslConn::createConnection(SSL_CTX *ctx, Socket client) {
+SSL *sslConn::createConnection(SSL_CTX *ctx, const Socket client) {
 	// ssl is the actual struct that hold the connectiondata
 	auto res = SSL_new(ctx);
 
@@ -129,13 +130,12 @@ void sslConn::destroyConnection(SSL *ssl) {
 	log(LOG_DEBUG, "[SSL] Connection destroyed\n");
 }
 
-int sslConn::receiveRecord(SSL *ssl, std::string &buff) {
-
-	// FIXME: receiving ZERO_RETURN as error code lead to a SIGSEGV read smeowhere in or after this function
+int sslConn::receiveRecordC(SSL *ssl, char **buff) {
 
 	char recvBuf[DEFAULT_BUFLEN];
 
-	int bytesReceived = DEFAULT_BUFLEN;
+	int bytesReceived    = DEFAULT_BUFLEN;
+	int totBytesReceived = 0;
 
 	do {
 		// if bytes received <= DEFAULT_BUFLEN, return the exact amount of byes received
@@ -143,7 +143,10 @@ int sslConn::receiveRecord(SSL *ssl, std::string &buff) {
 
 		if (bytesReceived > 0) {
 			log(LOG_INFO, "[SSL] Received %dB from connection\n", bytesReceived);
-			break;
+			*buff = static_cast<char *>(realloc(*buff, bytesReceived + totBytesReceived + 1));
+			memcpy(*buff, recvBuf, bytesReceived - totBytesReceived);
+			totBytesReceived += bytesReceived;
+			*buff[totBytesReceived] = '\0';
 		}
 
 		if (bytesReceived < 0) {
@@ -152,35 +155,79 @@ int sslConn::receiveRecord(SSL *ssl, std::string &buff) {
 		}
 
 		auto errcode = SSL_get_error(ssl, bytesReceived);
-		if (errcode == SSL_ERROR_SSL) {
-			log(LOG_DEBUG, "[SSL] Client shut down the communication\n");
-			bytesReceived = 0;
-			break;
+		if (errcode == SSL_ERROR_SSL || errcode == SSL_ERROR_SYSCALL) {
+			log(LOG_FATAL, "[SSL] The SSL library encoutered a fatal error %d -> %s\n", errno, strerror(errno));
+			return -1;
 		}
 
 		if (errcode == SSL_ERROR_ZERO_RETURN) {
-			log(LOG_DEBUG, "[SSL] Read failed. Client shut down the communication\n");
+			log(LOG_DEBUG, "[SSL] Read failed. Client stopped sending data\n");
 			return 0;
 		}
 
 		if (errcode != SSL_ERROR_NONE) {
 			log(LOG_DEBUG, "[SSL] Read failed with: %s\n", sslErrStr[errcode]);
-			return 0;
 		}
 	} while (SSL_pending(ssl) > 0);
-
-	buff.append(recvBuf);
 
 	return bytesReceived;
 }
 
-int sslConn::sendRecord(SSL *ssl, std::string &buff) {
+int sslConn::receiveRecord(SSL *ssl, std::string &buff) {
+
+	char recvBuf[DEFAULT_BUFLEN];
+
+	int bytesReceived    = DEFAULT_BUFLEN;
+	int totBytesReceived = 0;
+
+	do {
+		// if bytes received <= DEFAULT_BUFLEN, return the exact amount of byes received
+		bytesReceived = SSL_read(ssl, recvBuf, DEFAULT_BUFLEN);
+
+		if (bytesReceived > 0) {
+			log(LOG_INFO, "[SSL] Received %dB from connection\n", bytesReceived);
+			totBytesReceived += bytesReceived;
+			buff.append(recvBuf);
+		}
+
+		if (bytesReceived < 0) {
+			ERR_print_errors_fp(stderr);
+			log(LOG_ERROR, "[SSL] Could not read from the ssl connection\n");
+		}
+
+		auto errcode = SSL_get_error(ssl, bytesReceived);
+		if (errcode == SSL_ERROR_SSL || errcode == SSL_ERROR_SYSCALL) {
+			log(LOG_FATAL, "[SSL] The SSL library encoutered a fatal error %d -> %s\n", errno, strerror(errno));
+			return -1;
+		}
+
+		if (errcode == SSL_ERROR_ZERO_RETURN) {
+			log(LOG_DEBUG, "[SSL] Read failed. Client stopped sending data\n");
+			return 0;
+		}
+
+		if (errcode != SSL_ERROR_NONE) {
+			log(LOG_DEBUG, "[SSL] Read failed with: %s\n", sslErrStr[errcode]);
+		}
+	} while (SSL_pending(ssl) > 0);
+
+	return totBytesReceived;
+}
+
+int sslConn::sendRecord(SSL *ssl, const std::string &buff) {
+
+	return sendRecordC(ssl, buff.c_str());
+}
+
+int sslConn::sendRecordC(SSL *ssl, const char *buff) {
 
 	int errcode   = SSL_ERROR_NONE;
 	int bytesSent = 0;
 
+	size_t size = strlen(buff);
+
 	do {
-		bytesSent = SSL_write(ssl, buff.c_str(), static_cast<int>(buff.size()));
+		bytesSent = SSL_write(ssl, buff, (int)(size));
 
 		errcode = SSL_get_error(ssl, bytesSent);
 
@@ -199,8 +246,8 @@ int sslConn::sendRecord(SSL *ssl, std::string &buff) {
 		}
 	} while (errcode == SSL_ERROR_WANT_WRITE);
 
-	if (bytesSent != static_cast<int>(buff.size())) {
-		log(LOG_WARNING, "[SSL] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", buff.size(), bytesSent);
+	if (bytesSent != static_cast<int>(size)) {
+		log(LOG_WARNING, "[SSL] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", size, bytesSent);
 	}
 
 	log(LOG_INFO, "[SSL] Sent %ldB of data to client\n", bytesSent);
