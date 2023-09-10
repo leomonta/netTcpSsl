@@ -5,6 +5,7 @@
 			"type": "shell",
 			"label": "C/C++: g++.exe build all modified files",
 			"command": "cpp_builder.py",
+			"args": ["-p", "debug"],
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -14,6 +15,14 @@
 			"group": {
 				"kind": "build",
 				"isDefault": true
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
 			}
 		},
 		{
