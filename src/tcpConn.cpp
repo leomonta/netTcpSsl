@@ -8,10 +8,10 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-Socket tcpConn::initializeServer(const unsigned short port, const char protocol) {
+Socket tcpConn::initializeServer(const unsigned short port, const char IPv) {
 
 	// switch the code on the protocol
-	auto protCode = protocol == 6 ? AF_INET6 : AF_INET;
+	auto protCode = IPv == 6 ? AF_INET6 : AF_INET;
 
 	// create the server socket descriptor, return -1 on failure
 	auto serverSocket = socket(
@@ -41,7 +41,7 @@ Socket tcpConn::initializeServer(const unsigned short port, const char protocol)
 	// return -1 on failure
 	int errorCode;
 
-	if (protocol == 6) {
+	if (IPv == 6) {
 
 		// sockaddr_in serverAddr;
 		sockaddr_in6 serverAddr6;
@@ -87,9 +87,9 @@ Socket tcpConn::initializeServer(const unsigned short port, const char protocol)
 	return serverSocket;
 }
 
-Socket tcpConn::initializeClient(const unsigned short port, const char *server_name, const char protocol) {
+Socket tcpConn::initializeClient(const unsigned short port, const char *server_name, const char IPv) {
 
-	auto protCode = protocol == 6 ? AF_INET6 : AF_INET;
+	auto protCode = IPv == 6 ? AF_INET6 : AF_INET;
 
 	Socket clientSock = socket(protCode, SOCK_STREAM, IPPROTO_TCP);
 
@@ -150,7 +150,7 @@ void tcpConn::shutdownSocket(const Socket sck) {
 	}
 }
 
-ssize_t tcpConn::receiveSegmentC(const Socket sck, char *&result) {
+ssize_t tcpConn::receiveSegmentC(const Socket sck, char **buff) {
 
 	char recvbuf[DEFAULT_BUFLEN];
 	// result is the amount of bytes received
@@ -159,10 +159,10 @@ ssize_t tcpConn::receiveSegmentC(const Socket sck, char *&result) {
 
 	while (bytesReceived == DEFAULT_BUFLEN) {
 		bytesReceived = recv(sck, recvbuf, DEFAULT_BUFLEN, 0);
-		result = static_cast<char *>(realloc(result, bytesReceived + totBytesReceived + 1));
-		memcpy(result, recvbuf, bytesReceived - totBytesReceived);
+		*buff         = static_cast<char *>(realloc(*buff, bytesReceived + totBytesReceived + 1));
+		memcpy(*buff, recvbuf, bytesReceived - totBytesReceived);
 		totBytesReceived += bytesReceived;
-		result[totBytesReceived] = '\0';
+		*buff[totBytesReceived] = '\0';
 	}
 
 	if (totBytesReceived > 0) {
@@ -180,7 +180,7 @@ ssize_t tcpConn::receiveSegmentC(const Socket sck, char *&result) {
 	return totBytesReceived;
 }
 
-ssize_t tcpConn::receiveSegment(const Socket sck, std::string &result) {
+ssize_t tcpConn::receiveSegment(const Socket sck, std::string &buff) {
 
 	char recvbuf[DEFAULT_BUFLEN];
 	// result is the amount of bytes received
@@ -190,7 +190,7 @@ ssize_t tcpConn::receiveSegment(const Socket sck, std::string &result) {
 	while (bytesReceived == DEFAULT_BUFLEN) {
 		bytesReceived = recv(sck, recvbuf, DEFAULT_BUFLEN, 0);
 		totBytesReceived += bytesReceived;
-		result.append(recvbuf, totBytesReceived);
+		buff.append(recvbuf, totBytesReceived);
 	}
 
 	if (totBytesReceived > 0) {
