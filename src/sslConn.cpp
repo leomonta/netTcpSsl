@@ -146,7 +146,7 @@ int sslConn::receiveRecordC(SSL *ssl, char **buff) {
 			*buff = static_cast<char *>(realloc(*buff, bytesReceived + totBytesReceived + 1));
 			memcpy(*buff, recvBuf, bytesReceived - totBytesReceived);
 			totBytesReceived += bytesReceived;
-			*buff[totBytesReceived] = '\0';
+			(*buff)[totBytesReceived] = '\0';
 		}
 
 		if (bytesReceived < 0) {
