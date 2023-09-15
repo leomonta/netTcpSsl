@@ -82,7 +82,7 @@ namespace sslConn {
 	/**
 	 * same as sendRecord but uses a c interface
 	 */
-	int sendRecordC(SSL *ssl, const char *buff);
+	int sendRecordC(SSL *ssl, const char *buff, const size_t len);
 
 	/**
 	 * Attempts to accept

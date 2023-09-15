@@ -27,38 +27,8 @@
 		},
 		{
 			"type": "shell",
-			"label": "C/C++: g++.exe build all files",
-			"command": "cpp_builder.py -a",
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"problemMatcher": [
-				"$gcc"
-			],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
-			"type": "shell",
 			"label": "C/C++: g++ build all",
 			"command": "./build",
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"problemMatcher": [
-				"$gcc"
-			],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
-			"type": "shell",
-			"label": "C/C++: g++.exe build all files, optimized",
-			"command": "cpp_builder.py -a -o",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},

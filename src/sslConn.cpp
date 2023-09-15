@@ -216,15 +216,13 @@ int sslConn::receiveRecord(SSL *ssl, std::string &buff) {
 
 int sslConn::sendRecord(SSL *ssl, const std::string &buff) {
 
-	return sendRecordC(ssl, buff.c_str());
+	return sendRecordC(ssl, buff.c_str(), buff.size());
 }
 
-int sslConn::sendRecordC(SSL *ssl, const char *buff) {
+int sslConn::sendRecordC(SSL *ssl, const char *buff, const size_t size) {
 
 	int errcode   = SSL_ERROR_NONE;
 	int bytesSent = 0;
-
-	size_t size = strlen(buff);
 
 	do {
 		bytesSent = SSL_write(ssl, buff, (int)(size));
