@@ -20,7 +20,7 @@ Socket tcpConn::initializeServer(const unsigned short port, const char IPv) {
 	    IPPROTO_TCP);                // Tcp protocol
 
 	if (serverSocket == INVALID_SOCKET) {
-		log(LOG_FATAL, "[TCP] Impossible to create server Socket.\n	Reason: %d %s\n", errno, strerror(errno));
+		log(LOG_FATAL, "[TCP] Impossible to create server Socket.\n\tReason: %d %s\n", errno, strerror(errno));
 		return INVALID_SOCKET;
 	}
 
@@ -30,12 +30,10 @@ Socket tcpConn::initializeServer(const unsigned short port, const char IPv) {
 	auto sso    = setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
 
 	if (sso == -1) {
-		log(LOG_ERROR, "[TCP] Could not set resusabe address for the server socket.\n	Reason: %d %s\n", errno, strerror(errno));
+		log(LOG_ERROR, "[TCP] Could not set reusabe address for the server socket.\n\tReason: %d %s\n", errno, strerror(errno));
 	}
 
 	log(LOG_DEBUG, "[TCP] Set REUSEADDR for the server socket\n");
-
-	// input socket of the server
 
 	// bind the socket	Reason: "activate the socket"
 	// return -1 on failure
@@ -65,7 +63,7 @@ Socket tcpConn::initializeServer(const unsigned short port, const char IPv) {
 	}
 
 	if (errorCode == -1) {
-		log(LOG_FATAL, "[TCP] Bind failed.\n	Reason: %d %s\n", errno, strerror(errno));
+		log(LOG_FATAL, "[TCP] Bind failed.\n\tReason: %d %s\n", errno, strerror(errno));
 		return INVALID_SOCKET;
 	}
 
@@ -78,11 +76,13 @@ Socket tcpConn::initializeServer(const unsigned short port, const char IPv) {
 	errorCode = listen(serverSocket, SOMAXCONN);
 
 	if (errorCode == -1) {
-		log(LOG_FATAL, "[TCP] Listening failed.\n	Reason: %d %s\n", errno, strerror(errno));
+		log(LOG_FATAL, "[TCP] Listening failed.\n\tReason: %d %s\n", errno, strerror(errno));
 		return INVALID_SOCKET;
 	}
 
 	log(LOG_DEBUG, "[TCP] Socket server creation completed\n");
+
+	log(LOG_INFO, "[TCP] Server now listening at http://127.0.0.1:%d\n", port); 
 
 	return serverSocket;
 }
@@ -94,14 +94,14 @@ Socket tcpConn::initializeClient(const unsigned short port, const char *server_n
 	Socket clientSock = socket(protCode, SOCK_STREAM, IPPROTO_TCP);
 
 	if (clientSock == INVALID_SOCKET) {
-		log(LOG_FATAL, "Impossible to create server Socket.\n	Reason: %d %s\n", errno, strerror(errno));
+		log(LOG_FATAL, "Impossible to create server Socket.\n\tReason: %d %s\n", errno, strerror(errno));
 		return INVALID_SOCKET;
 	}
 
 	hostent *server_hn = gethostbyname(server_name);
 
 	if (server_hn == nullptr) {
-		log(LOG_FATAL, "Hostname requested is unrechable.\n	Reason. %d %s\n", errno, strerror(errno));
+		log(LOG_FATAL, "Hostname requested is unrechable.\n\tReason. %d %s\n", errno, strerror(errno));
 		return INVALID_SOCKET;
 	}
 
@@ -116,7 +116,7 @@ Socket tcpConn::initializeClient(const unsigned short port, const char *server_n
 	serv_addr.sin_port = htons(port);
 
 	if (connect(clientSock, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr)) == -1) {
-		log(LOG_FATAL, "Connectionn to server failed.\n	Reason. %d %s\n", errno, strerror(errno));
+		log(LOG_FATAL, "Connectionn to server failed.\n\tReason. %d %s\n", errno, strerror(errno));
 		return INVALID_SOCKET;
 	}
 
@@ -128,7 +128,7 @@ void tcpConn::terminate(const Socket sck) {
 	shutdownSocket(sck);
 	closeSocket(sck);
 
-	log(LOG_DEBUG, "[TCP] Server socket %d terminated\n", sck);
+	log(LOG_DEBUG, "[TCP] Socket %d terminated\n", sck);
 }
 
 void tcpConn::closeSocket(const Socket sck) {
@@ -136,7 +136,7 @@ void tcpConn::closeSocket(const Socket sck) {
 	auto res = close(sck);
 
 	if (res < 0) {
-		log(LOG_ERROR, "[TCP] Could not close socket %d\n	Reason: %d %s\n", sck, errno, strerror(errno));
+		log(LOG_ERROR, "[TCP] Could not close socket %d\n\tReason: %d %s\n", sck, errno, strerror(errno));
 	}
 }
 
@@ -146,7 +146,7 @@ void tcpConn::shutdownSocket(const Socket sck) {
 	auto res = shutdown(sck, SHUT_RDWR);
 
 	if (res < 0) {
-		log(LOG_ERROR, "[TCP] Could not shutdown socket %d\n	Reason: %d %s\n", sck, errno, strerror(errno));
+		log(LOG_ERROR, "[TCP] Could not shutdown socket %d\n\tReason: %d %s\n", sck, errno, strerror(errno));
 	}
 }
 
@@ -174,7 +174,7 @@ ssize_t tcpConn::receiveSegmentC(const Socket sck, char **buff) {
 	}
 
 	if (totBytesReceived < 0) {
-		log(LOG_ERROR, "[Socket %d] Failed to receive message\n	Reason: %d %s\n", sck, errno, strerror(errno));
+		log(LOG_ERROR, "[Socket %d] Failed to receive message\n\tReason: %d %s\n", sck, errno, strerror(errno));
 	}
 
 	return totBytesReceived;
@@ -202,7 +202,7 @@ ssize_t tcpConn::receiveSegment(const Socket sck, std::string &buff) {
 	}
 
 	if (totBytesReceived < 0) {
-		log(LOG_ERROR, "[Socket %d] Failed to receive message\n	Reason: %d %s\n", sck, errno, strerror(errno));
+		log(LOG_ERROR, "[Socket %d] Failed to receive message\n\tReason: %d %s\n", sck, errno, strerror(errno));
 	}
 
 	return totBytesReceived;
@@ -214,7 +214,7 @@ long tcpConn::sendSegmentC(const Socket sck, const char *buff) {
 
 	auto bytesSent = send(sck, buff, size, 0);
 	if (bytesSent < 0) {
-		log(LOG_ERROR, "[TCP] Failed to send message\n	Reason: %d %s\n", errno, strerror(errno));
+		log(LOG_ERROR, "[TCP] Failed to send message\n\tReason: %d %s\n", errno, strerror(errno));
 	}
 
 	if (bytesSent != static_cast<ssize_t>(size)) {
