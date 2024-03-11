@@ -3,7 +3,7 @@
 	},
 	"compiler": {
 		"compiler_style": "gcc",
-		"compiler_exe": "g++",
+		"compiler_exe": "gcc",
 		"linker_exe": "ar"
 	},
 
@@ -21,21 +21,13 @@
 	},
 
 	"debug": {
-		"compiler_args": "-g3 -std=c++2a -Wall -Wextra -Wconversion",
-		"linker_args": "rcs",
-		"libraries_dirs": [
-		],
-		"libraries_names": [
-		]
+		"compiler_args": "-g3 -std=c2x -Wall -Wextra -Wconversion",
+		"linker_args": "rcs"
 
 	},
 
 	"release": {
-		"compiler_args": "-O3 -std=c++2a",
-		"linker_args": "rcs",
-		"libraries_dirs": [
-		],
-		"libraries_names": [
-		]
+		"compiler_args": "-Ofast -std=c2x",
+		"linker_args": "rcs"
 	}
 }

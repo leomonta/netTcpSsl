@@ -1,14 +1,16 @@
-#include "tcpConn.hpp"
+#include "tcpConn.h"
 
-#include "logger.hpp"
+#include "logger.h"
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <netdb.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-Socket tcpConn::initializeServer(const unsigned short port, const char IPv) {
+Socket TCPinitializeServer(const unsigned short port, const char IPv) {
 
 	// switch the code on the protocol
 	auto protCode = IPv == 6 ? AF_INET6 : AF_INET;
@@ -42,24 +44,24 @@ Socket tcpConn::initializeServer(const unsigned short port, const char IPv) {
 	if (IPv == 6) {
 
 		// sockaddr_in serverAddr;
-		sockaddr_in6 serverAddr6;
+		struct sockaddr_in6 serverAddr6;
 		inet_pton(AF_INET6, "::1", &serverAddr6.sin6_addr);
 
 		serverAddr6.sin6_family = AF_INET6;    // again IPv6
 		serverAddr6.sin6_port   = htons(port); // change to network byte order since its needed internally,
 		// network byte order is Big Endian, this machine is Little Endian
 
-		errorCode = bind(serverSocket, reinterpret_cast<sockaddr *>(&serverAddr6), sizeof(serverAddr6));
+		errorCode = bind(serverSocket, (struct sockaddr *)(&serverAddr6), sizeof(serverAddr6));
 	} else {
 		// sockaddr_in serverAddr;
-		sockaddr_in serverAddr;
+		struct sockaddr_in serverAddr;
 
 		serverAddr.sin_family      = AF_INET;     // again IPv4
 		serverAddr.sin_addr.s_addr = INADDR_ANY;  // accept any type of ipv4 address
 		serverAddr.sin_port        = htons(port); // change to network byte order since its needed internally,
 		// network byte order is Big Endian, this machine is Little Endian
 
-		errorCode = bind(serverSocket, reinterpret_cast<sockaddr *>(&serverAddr), sizeof(serverAddr));
+		errorCode = bind(serverSocket, (struct sockaddr *)(&serverAddr), sizeof(serverAddr));
 	}
 
 	if (errorCode == -1) {
@@ -82,12 +84,12 @@ Socket tcpConn::initializeServer(const unsigned short port, const char IPv) {
 
 	log(LOG_DEBUG, "[TCP] Socket server creation completed\n");
 
-	log(LOG_INFO, "[TCP] Server now listening at http://127.0.0.1:%d\n", port); 
+	log(LOG_INFO, "[TCP] Server now listening at http://127.0.0.1:%d\n", port);
 
 	return serverSocket;
 }
 
-Socket tcpConn::initializeClient(const unsigned short port, const char *server_name, const char IPv) {
+Socket TCPinitializeClient(const unsigned short port, const char *server_name, const char IPv) {
 
 	auto protCode = IPv == 6 ? AF_INET6 : AF_INET;
 
@@ -98,24 +100,24 @@ Socket tcpConn::initializeClient(const unsigned short port, const char *server_n
 		return INVALID_SOCKET;
 	}
 
-	hostent *server_hn = gethostbyname(server_name);
+	struct hostent *server_hn = gethostbyname(server_name);
 
 	if (server_hn == nullptr) {
 		log(LOG_FATAL, "Hostname requested is unrechable.\n\tReason. %d %s\n", errno, strerror(errno));
 		return INVALID_SOCKET;
 	}
 
-	sockaddr_in serv_addr;
+	struct sockaddr_in serv_addr;
 
 	// set the entire server address struct to 0
-	bzero((char *)&serv_addr, sizeof(serv_addr));
-	serv_addr.sin_family = static_cast<short unsigned int>(protCode);
+	memset(&serv_addr, 0, sizeof(serv_addr));
+	serv_addr.sin_family = (short unsigned int)(protCode);
 
-	// copy th server ip from the server hostname to the server socket internet address
-	bcopy((char *)server_hn->h_addr_list[0], (char *)&serv_addr.sin_addr.s_addr, server_hn->h_length);
+	// copy the server ip from the server hostname to the server socket internet address
+	memcpy(&serv_addr.sin_addr.s_addr, server_hn->h_addr_list[0], (size_t)(server_hn->h_length));
 	serv_addr.sin_port = htons(port);
 
-	if (connect(clientSock, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr)) == -1) {
+	if (connect(clientSock, (struct sockaddr *)(&serv_addr), sizeof(serv_addr)) == -1) {
 		log(LOG_FATAL, "Connectionn to server failed.\n\tReason. %d %s\n", errno, strerror(errno));
 		return INVALID_SOCKET;
 	}
@@ -123,15 +125,15 @@ Socket tcpConn::initializeClient(const unsigned short port, const char *server_n
 	return clientSock;
 }
 
-void tcpConn::terminate(const Socket sck) {
+void TCPterminate(const Socket sck) {
 
-	shutdownSocket(sck);
-	closeSocket(sck);
+	TCPshutdownSocket(sck);
+	TCPcloseSocket(sck);
 
 	log(LOG_DEBUG, "[TCP] Socket %d terminated\n", sck);
 }
 
-void tcpConn::closeSocket(const Socket sck) {
+void TCPcloseSocket(const Socket sck) {
 
 	auto res = close(sck);
 
@@ -140,7 +142,7 @@ void tcpConn::closeSocket(const Socket sck) {
 	}
 }
 
-void tcpConn::shutdownSocket(const Socket sck) {
+void TCPshutdownSocket(const Socket sck) {
 
 	// shutdown for both ReaD and WRite
 	auto res = shutdown(sck, SHUT_RDWR);
@@ -150,7 +152,7 @@ void tcpConn::shutdownSocket(const Socket sck) {
 	}
 }
 
-ssize_t tcpConn::receiveSegmentC(const Socket sck, char **buff) {
+ssize_t TCPreceiveSegment(const Socket sck, char **buff) {
 
 	char recvbuf[DEFAULT_BUFLEN];
 	// result is the amount of bytes received
@@ -159,8 +161,10 @@ ssize_t tcpConn::receiveSegmentC(const Socket sck, char **buff) {
 
 	while (bytesReceived == DEFAULT_BUFLEN) {
 		bytesReceived = recv(sck, recvbuf, DEFAULT_BUFLEN, 0);
-		*buff         = static_cast<char *>(realloc(*buff, bytesReceived + totBytesReceived + 1));
-		memcpy(*buff, recvbuf, bytesReceived - totBytesReceived);
+		*buff         = (char *)(realloc(*buff, (size_t)(bytesReceived + totBytesReceived + 1)));
+
+		memcpy(*buff, recvbuf, (size_t) (bytesReceived - totBytesReceived));
+
 		totBytesReceived += bytesReceived;
 		*buff[totBytesReceived] = '\0';
 	}
@@ -180,35 +184,7 @@ ssize_t tcpConn::receiveSegmentC(const Socket sck, char **buff) {
 	return totBytesReceived;
 }
 
-ssize_t tcpConn::receiveSegment(const Socket sck, std::string &buff) {
-
-	char recvbuf[DEFAULT_BUFLEN];
-	// result is the amount of bytes received
-	ssize_t bytesReceived    = DEFAULT_BUFLEN;
-	ssize_t totBytesReceived = 0;
-
-	while (bytesReceived == DEFAULT_BUFLEN) {
-		bytesReceived = recv(sck, recvbuf, DEFAULT_BUFLEN, 0);
-		totBytesReceived += bytesReceived;
-		buff.append(recvbuf, totBytesReceived);
-	}
-
-	if (totBytesReceived > 0) {
-		log(LOG_INFO, "[Socket %d] Received %ldB from client\n", sck, totBytesReceived);
-	}
-
-	if (totBytesReceived == 0) {
-		log(LOG_INFO, "[Socket %d] Client has shut down the communication\n", sck);
-	}
-
-	if (totBytesReceived < 0) {
-		log(LOG_ERROR, "[Socket %d] Failed to receive message\n\tReason: %d %s\n", sck, errno, strerror(errno));
-	}
-
-	return totBytesReceived;
-}
-
-long tcpConn::sendSegmentC(const Socket sck, const char *buff) {
+long TCPsendSegment(const Socket sck, const char *buff) {
 
 	auto size = strlen(buff);
 
@@ -217,7 +193,7 @@ long tcpConn::sendSegmentC(const Socket sck, const char *buff) {
 		log(LOG_ERROR, "[TCP] Failed to send message\n\tReason: %d %s\n", errno, strerror(errno));
 	}
 
-	if (bytesSent != static_cast<ssize_t>(size)) {
+	if (bytesSent != (ssize_t)(size)) {
 		log(LOG_WARNING, "[TCP] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", size, bytesSent);
 	}
 
@@ -226,15 +202,10 @@ long tcpConn::sendSegmentC(const Socket sck, const char *buff) {
 	return bytesSent;
 }
 
-long tcpConn::sendSegment(const Socket sck, const std::string &buff) {
-
-	return sendSegmentC(sck, buff.c_str());
-}
-
-Socket tcpConn::acceptClientSock(const Socket ssck) {
+Socket TCPacceptClientSock(const Socket ssck) {
 
 	// the client socket address
-	sockaddr clientAddr;
+	struct sockaddr clientAddr;
 
 	// size of the client socket address
 	socklen_t clientSize = sizeof(clientAddr);
@@ -247,7 +218,7 @@ Socket tcpConn::acceptClientSock(const Socket ssck) {
 		return -1;
 	}
 
-	sockaddr_in *temp = reinterpret_cast<sockaddr_in *>(&clientAddr);
+	struct sockaddr_in *temp = (struct sockaddr_in *)(&clientAddr);
 
 	// everything fine, communicate on stdout
 	log(LOG_INFO, "[TCP] Accepted client IP %s:%u\n", inet_ntoa(temp->sin_addr), ntohs(temp->sin_port));

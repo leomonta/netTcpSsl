@@ -1,10 +1,10 @@
-#include "sslConn.hpp"
+#include "sslConn.h"
 
-#include "logger.hpp"
+#include "logger.h"
 
 #include <openssl/err.h>
 
-const char *sslErrStr[]{
+const char *sslErrStr[] = {
 
     "SSL_ERROR_NONE",
     "SSL_ERROR_SSL",
@@ -21,7 +21,7 @@ const char *sslErrStr[]{
     "SSL_ERROR_WANT_RETRY_VERIFY",
 };
 
-void sslConn::initializeServer() {
+void SSLinitializeServer() {
 	// make libssl and libcrypto errors readable, before library_init
 	SSL_load_error_strings();
 	log(LOG_DEBUG, "[SSL] Loaded error strings\n");
@@ -36,13 +36,13 @@ void sslConn::initializeServer() {
 	log(LOG_DEBUG, "[SSL] Loaded the cyphers and digest algorithms\n");
 }
 
-void sslConn::terminateServer() {
+void SSLterminateServer() {
 	ERR_free_strings();
 
 	log(LOG_DEBUG, "[SSL] Error string fred\n");
 }
 
-SSL_CTX *sslConn::createContext() {
+SSL_CTX *SSLcreateContext() {
 	// TLS is the newer version of ssl
 	// use SSLv23_server_method() for sslv2, sslv3 and tslv1 compartibility
 	// create a framework to create ssl struct for connections
@@ -88,14 +88,14 @@ SSL_CTX *sslConn::createContext() {
 	return res;
 }
 
-void sslConn::destroyContext(SSL_CTX *ctx) {
+void SSLdestroyContext(SSL_CTX *ctx) {
 	// destroy and free the context
 	SSL_CTX_free(ctx);
 
 	log(LOG_DEBUG, "[SSL] Context destroyed\n");
 }
 
-SSL *sslConn::createConnection(SSL_CTX *ctx, const Socket client) {
+SSL *SSLcreateConnection(SSL_CTX *ctx, const Socket client) {
 	// ssl is the actual struct that hold the connectiondata
 	auto res = SSL_new(ctx);
 
@@ -122,7 +122,7 @@ SSL *sslConn::createConnection(SSL_CTX *ctx, const Socket client) {
 	return res;
 }
 
-void sslConn::destroyConnection(SSL *ssl) {
+void SSLdestroyConnection(SSL *ssl) {
 	// close the connection and free the data in the struct
 	SSL_shutdown(ssl);
 	SSL_free(ssl);
@@ -130,7 +130,7 @@ void sslConn::destroyConnection(SSL *ssl) {
 	log(LOG_DEBUG, "[SSL] Connection destroyed\n");
 }
 
-int sslConn::receiveRecordC(SSL *ssl, char **buff) {
+int SSLreceiveRecord(SSL *ssl, char **buff) {
 
 	char recvBuf[DEFAULT_BUFLEN];
 
@@ -143,8 +143,10 @@ int sslConn::receiveRecordC(SSL *ssl, char **buff) {
 
 		if (bytesReceived > 0) {
 			log(LOG_INFO, "[SSL] Received %dB from connection\n", bytesReceived);
-			*buff = static_cast<char *>(realloc(*buff, bytesReceived + totBytesReceived + 1));
-			memcpy(*buff, recvBuf, bytesReceived - totBytesReceived);
+			*buff = (char *)(realloc(*buff, (size_t)(bytesReceived + totBytesReceived + 1)));
+
+			memcpy(*buff, recvBuf, (size_t)(bytesReceived - totBytesReceived));
+
 			totBytesReceived += bytesReceived;
 			(*buff)[totBytesReceived] = '\0';
 		}
@@ -173,53 +175,7 @@ int sslConn::receiveRecordC(SSL *ssl, char **buff) {
 	return bytesReceived;
 }
 
-int sslConn::receiveRecord(SSL *ssl, std::string &buff) {
-
-	char recvBuf[DEFAULT_BUFLEN];
-
-	int bytesReceived    = DEFAULT_BUFLEN;
-	int totBytesReceived = 0;
-
-	do {
-		// if bytes received <= DEFAULT_BUFLEN, return the exact amount of byes received
-		bytesReceived = SSL_read(ssl, recvBuf, DEFAULT_BUFLEN);
-
-		if (bytesReceived > 0) {
-			log(LOG_INFO, "[SSL] Received %dB from connection\n", bytesReceived);
-			totBytesReceived += bytesReceived;
-			buff.append(recvBuf);
-		}
-
-		if (bytesReceived < 0) {
-			ERR_print_errors_fp(stderr);
-			log(LOG_ERROR, "[SSL] Could not read from the ssl connection\n");
-		}
-
-		auto errcode = SSL_get_error(ssl, bytesReceived);
-		if (errcode == SSL_ERROR_SSL || errcode == SSL_ERROR_SYSCALL) {
-			log(LOG_FATAL, "[SSL] The SSL library encoutered a fatal error %d -> %s\n", errno, strerror(errno));
-			return -1;
-		}
-
-		if (errcode == SSL_ERROR_ZERO_RETURN) {
-			log(LOG_DEBUG, "[SSL] Read failed. Client stopped sending data\n");
-			return 0;
-		}
-
-		if (errcode != SSL_ERROR_NONE) {
-			log(LOG_DEBUG, "[SSL] Read failed with: %s\n", sslErrStr[errcode]);
-		}
-	} while (SSL_pending(ssl) > 0);
-
-	return totBytesReceived;
-}
-
-int sslConn::sendRecord(SSL *ssl, const std::string &buff) {
-
-	return sendRecordC(ssl, buff.c_str(), buff.size());
-}
-
-int sslConn::sendRecordC(SSL *ssl, const char *buff, const size_t size) {
+int SSLsendRecord(SSL *ssl, const char *buff, const size_t size) {
 
 	int errcode   = SSL_ERROR_NONE;
 	int bytesSent = 0;
@@ -244,7 +200,7 @@ int sslConn::sendRecordC(SSL *ssl, const char *buff, const size_t size) {
 		}
 	} while (errcode == SSL_ERROR_WANT_WRITE);
 
-	if (bytesSent != static_cast<int>(size)) {
+	if (bytesSent != (int)(size)) {
 		log(LOG_WARNING, "[SSL] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", size, bytesSent);
 	}
 
@@ -253,7 +209,7 @@ int sslConn::sendRecordC(SSL *ssl, const char *buff, const size_t size) {
 	return bytesSent;
 }
 
-int sslConn::acceptClientConnection(SSL *ssl) {
+int SSLacceptClientConnection(SSL *ssl) {
 
 	auto res = SSL_accept(ssl);
 
