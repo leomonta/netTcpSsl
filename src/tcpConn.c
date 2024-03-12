@@ -166,7 +166,7 @@ ssize_t TCPreceiveSegment(const Socket sck, char **buff) {
 		memcpy(*buff, recvbuf, (size_t) (bytesReceived - totBytesReceived));
 
 		totBytesReceived += bytesReceived;
-		*buff[totBytesReceived] = '\0';
+		(*buff)[totBytesReceived] = '\0';
 	}
 
 	if (totBytesReceived > 0) {

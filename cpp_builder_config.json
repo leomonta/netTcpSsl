@@ -21,9 +21,8 @@
 	},
 
 	"debug": {
-		"compiler_args": "-g3 -std=c2x -Wall -Wextra -Wconversion",
+		"compiler_args": "-g3 -std=c2x -Wall -Wextra -Wconversion -fsanitize=leak -fsanitize=address",
 		"linker_args": "rcs"
-
 	},
 
 	"release": {
