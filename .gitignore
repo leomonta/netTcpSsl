@@ -2,3 +2,5 @@ obj/*
 bin/*
 files_hash
 build
+.cache
+compile_commands.json
