@@ -24,22 +24,22 @@ const char *sslErrStr[] = {
 void SSLinitializeServer() {
 	// make libssl and libcrypto errors readable, before library_init
 	SSL_load_error_strings();
-	log(LOG_DEBUG, "[SSL] Loaded error strings\n");
+	llog(LOG_DEBUG, "[SSL] Loaded error strings\n");
 
 	// Should be called before everything else
 	// Registers digests  and cyphers(whatever that means)
 	SSL_library_init();
-	log(LOG_DEBUG, "[SSL] Initialized library\n");
+	llog(LOG_DEBUG, "[SSL] Initialized library\n");
 
 	// populate all digest and cypher algos to an internal table
 	OpenSSL_add_ssl_algorithms();
-	log(LOG_DEBUG, "[SSL] Loaded the cyphers and digest algorithms\n");
+	llog(LOG_DEBUG, "[SSL] Loaded the cyphers and digest algorithms\n");
 }
 
 void SSLterminateServer() {
 	ERR_free_strings();
 
-	log(LOG_DEBUG, "[SSL] Error string fred\n");
+	llog(LOG_DEBUG, "[SSL] Error string fred\n");
 }
 
 SSL_CTX *SSLcreateContext() {
@@ -55,11 +55,11 @@ SSL_CTX *SSLcreateContext() {
 	if (res == nullptr) {
 		ERR_print_errors_fp(stderr);
 		// Should alos always use my logger
-		log(LOG_FATAL, "[SSl] Could not create context\n");
+		llog(LOG_FATAL, "[SSl] Could not create context\n");
 		return nullptr;
 	}
 
-	log(LOG_DEBUG, "[SSL] Created context with the best protocol available\n");
+	llog(LOG_DEBUG, "[SSL] Created context with the best protocol available\n");
 
 	// Load the keys and cetificates
 
@@ -68,22 +68,22 @@ SSL_CTX *SSLcreateContext() {
 
 	if (certUse != 1) {
 		ERR_print_errors_fp(stderr);
-		log(LOG_FATAL, "[SSL] Could not load certificate file '%s'\n", cerFile);
+		llog(LOG_FATAL, "[SSL] Could not load certificate file '%s'\n", cerFile);
 		return nullptr;
 	}
 
-	log(LOG_DEBUG, "[SSL] Loaded server certificate '%s'\n", cerFile);
+	llog(LOG_DEBUG, "[SSL] Loaded server certificate '%s'\n", cerFile);
 
 	auto keyFile = "/usr/local/bin/key.pem";
 	auto keyUse  = SSL_CTX_use_PrivateKey_file(res, keyFile, SSL_FILETYPE_PEM);
 
 	if (keyUse != 1) {
 		ERR_print_errors_fp(stderr);
-		log(LOG_FATAL, "[SSL] Could not load private key file '%s'\n", keyFile);
+		llog(LOG_FATAL, "[SSL] Could not load private key file '%s'\n", keyFile);
 		return nullptr;
 	}
 
-	log(LOG_DEBUG, "[SSL] Loaded server private key '%s'\n", keyFile);
+	llog(LOG_DEBUG, "[SSL] Loaded server private key '%s'\n", keyFile);
 
 	return res;
 }
@@ -92,7 +92,7 @@ void SSLdestroyContext(SSL_CTX *ctx) {
 	// destroy and free the context
 	SSL_CTX_free(ctx);
 
-	log(LOG_DEBUG, "[SSL] Context destroyed\n");
+	llog(LOG_DEBUG, "[SSL] Context destroyed\n");
 }
 
 SSL *SSLcreateConnection(SSL_CTX *ctx, const Socket client) {
@@ -102,22 +102,22 @@ SSL *SSLcreateConnection(SSL_CTX *ctx, const Socket client) {
 	// the conn failed
 	if (res == NULL) {
 		ERR_print_errors_fp(stderr);
-		log(LOG_ERROR, "[SSL] Could not create a connection\n");
+		llog(LOG_ERROR, "[SSL] Could not create a connection\n");
 		return nullptr;
 	}
 
-	log(LOG_DEBUG, "[SSL] Created new connection\n");
+	llog(LOG_DEBUG, "[SSL] Created new connection\n");
 
 	auto err = SSL_set_fd(res, client);
 	if (err != 1) {
 		ERR_print_errors_fp(stderr);
-		log(LOG_ERROR, "[SSL] Could not set the tcp client fd to the ssl connection\n");
+		llog(LOG_ERROR, "[SSL] Could not set the tcp client fd to the ssl connection\n");
 		return nullptr;
 	}
 
-	log(LOG_DEBUG, "[SSL] Connection linked to the socket\n");
+	llog(LOG_DEBUG, "[SSL] Connection linked to the socket\n");
 
-	log(LOG_INFO, "[SSL] Successfully created and linked a connection to the client sokcet %d\n", client);
+	llog(LOG_INFO, "[SSL] Successfully created and linked a connection to the client sokcet %d\n", client);
 
 	return res;
 }
@@ -127,7 +127,7 @@ void SSLdestroyConnection(SSL *ssl) {
 	SSL_shutdown(ssl);
 	SSL_free(ssl);
 
-	log(LOG_DEBUG, "[SSL] Connection destroyed\n");
+	llog(LOG_DEBUG, "[SSL] Connection destroyed\n");
 }
 
 int SSLreceiveRecord(SSL *ssl, char **buff) {
@@ -142,7 +142,7 @@ int SSLreceiveRecord(SSL *ssl, char **buff) {
 		bytesReceived = SSL_read(ssl, recvBuf, DEFAULT_BUFLEN);
 
 		if (bytesReceived > 0) {
-			log(LOG_INFO, "[SSL] Received %dB from connection\n", bytesReceived);
+			llog(LOG_INFO, "[SSL] Received %dB from connection\n", bytesReceived);
 			*buff = (char *)(realloc(*buff, (size_t)(bytesReceived + totBytesReceived + 1)));
 
 			memcpy(*buff, recvBuf, (size_t)(bytesReceived - totBytesReceived));
@@ -153,22 +153,22 @@ int SSLreceiveRecord(SSL *ssl, char **buff) {
 
 		if (bytesReceived < 0) {
 			ERR_print_errors_fp(stderr);
-			log(LOG_ERROR, "[SSL] Could not read from the ssl connection\n");
+			llog(LOG_ERROR, "[SSL] Could not read from the ssl connection\n");
 		}
 
 		auto errcode = SSL_get_error(ssl, bytesReceived);
 		if (errcode == SSL_ERROR_SSL || errcode == SSL_ERROR_SYSCALL) {
-			log(LOG_FATAL, "[SSL] The SSL library encoutered a fatal error %d -> %s\n", errno, strerror(errno));
+			llog(LOG_FATAL, "[SSL] The SSL library encoutered a fatal error %d -> %s\n", errno, strerror(errno));
 			return -1;
 		}
 
 		if (errcode == SSL_ERROR_ZERO_RETURN) {
-			log(LOG_DEBUG, "[SSL] Read failed. Client stopped sending data\n");
+			llog(LOG_DEBUG, "[SSL] Read failed. Client stopped sending data\n");
 			return 0;
 		}
 
 		if (errcode != SSL_ERROR_NONE) {
-			log(LOG_DEBUG, "[SSL] Read failed with: %s\n", sslErrStr[errcode]);
+			llog(LOG_DEBUG, "[SSL] Read failed with: %s\n", sslErrStr[errcode]);
 		}
 	} while (SSL_pending(ssl) > 0);
 
@@ -189,11 +189,11 @@ int SSLsendRecord(SSL *ssl, const char *buff, const size_t size) {
 			ERR_print_errors_fp(stderr);
 			switch (errcode) {
 			case SSL_ERROR_ZERO_RETURN:
-				log(LOG_DEBUG, "[SSL] Client shutdown connection\n");
+				llog(LOG_DEBUG, "[SSL] Client shutdown connection\n");
 				break;
 			default:
-				log(LOG_DEBUG, "[SSL] Write failed with: %s\n", sslErrStr[errcode]);
-				log(LOG_ERROR, "[SSL] Could not send Record to client\n");
+				llog(LOG_DEBUG, "[SSL] Write failed with: %s\n", sslErrStr[errcode]);
+				llog(LOG_ERROR, "[SSL] Could not send Record to client\n");
 			};
 
 			return -1;
@@ -201,10 +201,10 @@ int SSLsendRecord(SSL *ssl, const char *buff, const size_t size) {
 	} while (errcode == SSL_ERROR_WANT_WRITE);
 
 	if (bytesSent != (int)(size)) {
-		log(LOG_WARNING, "[SSL] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", size, bytesSent);
+		llog(LOG_WARNING, "[SSL] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", size, bytesSent);
 	}
 
-	log(LOG_INFO, "[SSL] Sent %ldB of data to client\n", bytesSent);
+	llog(LOG_INFO, "[SSL] Sent %ldB of data to client\n", bytesSent);
 
 	return bytesSent;
 }
@@ -218,12 +218,12 @@ int SSLacceptClientConnection(SSL *ssl) {
 		ERR_print_errors_fp(stderr);
 		auto errcode = SSL_get_error(ssl, res);
 
-		log(LOG_DEBUG, "[SSL] Read failed with: %s\n", sslErrStr[errcode]);
-		log(LOG_ERROR, "[SSL] Could not accept ssl connection\n");
+		llog(LOG_DEBUG, "[SSL] Read failed with: %s\n", sslErrStr[errcode]);
+		llog(LOG_ERROR, "[SSL] Could not accept ssl connection\n");
 		return -1;
 	}
 
 	// Connection established, yuppy
-	log(LOG_INFO, "[SSL] Accepted secure connection\n");
+	llog(LOG_INFO, "[SSL] Accepted secure connection\n");
 	return 0;
 }

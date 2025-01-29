@@ -7,6 +7,6 @@
 #define LOG_ERROR   4
 #define LOG_FATAL   5
 
-void log(const char logLevel, const char *mex, ...);
+void llog(const char logLevel, const char *mex, ...);
 
 void setLogLevel(const char newLogLevel);
