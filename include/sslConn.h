@@ -5,6 +5,10 @@ Thanks to -> https://stackoverflow.com/questions/7698488/turn-a-simple-socket-in
 und to -> https://gist.github.com/vedantroy/d2b99d774484cf4ea5165b200888e414
 */
 
+#if defined(__cplusplus)
+extern "C" {            // Prevents name mangling of functions
+#endif
+
 #include "tcpConn.h"
 
 #include <openssl/ssl.h>
@@ -76,3 +80,7 @@ int SSLsendRecord(SSL *ssl, const char *buff, const size_t len);
  * Attempts to accept
  */
 int SSLacceptClientConnection(SSL *ssl);
+
+#if defined(__cplusplus)
+}
+#endif

@@ -3,6 +3,9 @@
 /*
 Thanks to -> https://www.linuxhowtos.org/C_C++/socket.htm
 */
+#if defined(__cplusplus)
+extern "C" {            // Prevents name mangling of functions
+#endif
 
 #include <sys/types.h>
 #define INVALID_SOCKET -1
@@ -80,3 +83,7 @@ long TCPsendSegment(const Socket sck, const char *buff);
  * @return a client that wants to connect to this server
  */
 Socket TCPacceptClientSock(const Socket ssck);
+
+#if defined(__cplusplus)
+}
+#endif
