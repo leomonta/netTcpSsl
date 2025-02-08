@@ -42,7 +42,7 @@ void SSLterminateServer() {
 	llog(LOG_DEBUG, "[SSL] Error string fred\n");
 }
 
-SSL_CTX *SSLcreateContext() {
+SSL_CTX *SSLcreateContext(const char* certificateFilename, const char* keyFilename) {
 	// TLS is the newer version of ssl
 	// use SSLv23_server_method() for sslv2, sslv3 and tslv1 compartibility
 	// create a framework to create ssl struct for connections
@@ -63,27 +63,25 @@ SSL_CTX *SSLcreateContext() {
 
 	// Load the keys and cetificates
 
-	auto cerFile = "/usr/local/bin/cert.pem";
-	auto certUse = SSL_CTX_use_certificate_file(res, cerFile, SSL_FILETYPE_PEM);
+	auto certUse = SSL_CTX_use_certificate_file(res, certificateFilename, SSL_FILETYPE_PEM);
 
 	if (certUse != 1) {
 		ERR_print_errors_fp(stderr);
-		llog(LOG_FATAL, "[SSL] Could not load certificate file '%s'\n", cerFile);
+		llog(LOG_FATAL, "[SSL] Could not load certificate file '%s'\n", certificateFilename);
 		return nullptr;
 	}
 
-	llog(LOG_DEBUG, "[SSL] Loaded server certificate '%s'\n", cerFile);
+	llog(LOG_DEBUG, "[SSL] Loaded server certificate '%s'\n", certificateFilename);
 
-	auto keyFile = "/usr/local/bin/key.pem";
-	auto keyUse  = SSL_CTX_use_PrivateKey_file(res, keyFile, SSL_FILETYPE_PEM);
+	auto keyUse  = SSL_CTX_use_PrivateKey_file(res, keyFilename, SSL_FILETYPE_PEM);
 
 	if (keyUse != 1) {
 		ERR_print_errors_fp(stderr);
-		llog(LOG_FATAL, "[SSL] Could not load private key file '%s'\n", keyFile);
+		llog(LOG_FATAL, "[SSL] Could not load private key file '%s'\n", keyFilename);
 		return nullptr;
 	}
 
-	llog(LOG_DEBUG, "[SSL] Loaded server private key '%s'\n", keyFile);
+	llog(LOG_DEBUG, "[SSL] Loaded server private key '%s'\n", keyFilename);
 
 	return res;
 }

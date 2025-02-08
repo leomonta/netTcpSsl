@@ -29,8 +29,11 @@ void SSLterminateServer();
  * create a reference to create SSL objects
  *
  * must later call destroyContext to free up the allocated resources
+ *
+ * @param certificateFilename the file path of the openssl certificate
+ * @param keyFilename the file path of the openssl key
  */
-SSL_CTX *SSLcreateContext();
+SSL_CTX *SSLcreateContext(const char* certificateFilename, const char* keyFilename);
 
 /**
  * free up the resources allocated by createContext
