@@ -51,9 +51,9 @@ void logger(logLevel ll, const char *file_name, const unsigned line_num, const c
 		break;
 	}
 
-	// [LOG_LEVEL] filename:line_num in func_name(...) message
+	// [LOG_LEVEL] filename:line_num in func_name message
 	// [  INFO ] test.c:60 in logger(...) this is a test message
-	printf("%s %s:%d " GRY "in" RESET " %s(...)\t" RESET, prefix, file_name, line_num, function_name);
+	printf("%s %s:%d " GRY "in" RESET " %s    ", prefix, file_name, line_num, function_name);
 	vprintf(format, args);
 	fflush(stdout); // ensure printing even with no \n
 
