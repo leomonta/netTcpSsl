@@ -35,7 +35,7 @@ void set_log_level(logLevel ll);
  * @param[in] ... the variadic arguments to pass to printf
  *
  */
-void logger(logLevel ll, const char *file_name, const unsigned line_num, const char *function_name, const char *format, ...);
+void logger(const logLevel ll, const char *file_name, const unsigned line_num, const char *function_name, const char *format, ...);
 
 #if defined(__cplusplus)
 }
