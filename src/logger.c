@@ -13,6 +13,8 @@
 #define GRY   "\x1B[090m"
 #define RESET "\x1B[0m"
 
+#define INTERNAL_BUFFER_SIZE 8196
+
 // default log level if not specified via 'set_log_level'
 static char log_level = LOG_DEBUG;
 
@@ -26,6 +28,10 @@ void logger(const logLevel ll, const char *file_name, const unsigned line_num, c
 	if (log_level < ll) {
 		return;
 	}
+
+	// stright up rawdogging it
+	// needs this to prevent multiple threads to clutter stdout
+	char log_buffer[INTERNAL_BUFFER_SIZE] = {0};
 
 	va_list args;
 	va_start(args, format);
@@ -51,10 +57,12 @@ void logger(const logLevel ll, const char *file_name, const unsigned line_num, c
 		break;
 	}
 
-	// [LOG_LEVEL] filename:line_num in func_name message
-	// [  INFO ] test.c:60 in logger(...) this is a test message
-	printf("%s %-10.10s:%-4d " GRY "in" RESET " %-20.20s    " RESET, prefix, file_name, line_num, function_name);
-	vprintf(format, args);
+	//
+	// [ DEBUG ] server.cpp:167  in void start(runtimeIn    [
+	// this should return always
+	auto printed_chars = snprintf(log_buffer, INTERNAL_BUFFER_SIZE, "%s %-10.10s:%-4d " GRY "in" RESET " %-20.20s    " RESET, prefix, file_name, line_num, function_name);
+	vsnprintf(log_buffer + printed_chars, (size_t)(INTERNAL_BUFFER_SIZE - printed_chars), format, args);
+	printf("%s", log_buffer);
 	fflush(stdout); // ensure printing even with no \n
 
 	va_end(args);
