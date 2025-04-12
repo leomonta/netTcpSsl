@@ -31,7 +31,7 @@ void logger(const logLevel ll, const char *file_name, const unsigned line_num, c
 
 	// stright up rawdogging it
 	// needs this to prevent multiple threads to clutter stdout
-	char log_buffer[INTERNAL_BUFFER_SIZE] = {0};
+	char log_buffer[INTERNAL_BUFFER_SIZE];
 
 	va_list args;
 	va_start(args, format);
