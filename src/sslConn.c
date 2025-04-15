@@ -167,7 +167,7 @@ int SSL_receive_record(SSL *ssl, char **buff) {
 		}
 
 		if (errcode != SSL_ERROR_NONE) {
-			llog(LOG_DEBUG, "[SSL] Read failed with: %s\n", sslErrStr[errcode]);
+			llog(LOG_DEBUG, "[SSL] Read failed with: %s\n", SSL_ERR_STRING[errcode]);
 		}
 	} while (SSL_pending(ssl) > 0);
 
@@ -191,7 +191,7 @@ int SSL_send_record(SSL *ssl, const char *buff, const size_t size) {
 				llog(LOG_DEBUG, "[SSL] Client shutdown connection\n");
 				break;
 			default:
-				llog(LOG_DEBUG, "[SSL] Write failed with: %s\n", sslErrStr[errcode]);
+				llog(LOG_DEBUG, "[SSL] Write failed with: %s\n", SSL_ERR_STRING[errcode]);
 				llog(LOG_ERROR, "[SSL] Could not send Record to client\n");
 			};
 
@@ -217,7 +217,7 @@ int SSL_accept_client(SSL *ssl) {
 		ERR_print_errors_fp(stderr);
 		auto errcode = SSL_get_error(ssl, res);
 
-		llog(LOG_DEBUG, "[SSL] Read failed with: %s\n", sslErrStr[errcode]);
+		llog(LOG_DEBUG, "[SSL] Read failed with: %s\n", SSL_ERR_STRING[errcode]);
 		llog(LOG_ERROR, "[SSL] Could not accept ssl connection\n");
 		return -1;
 	}
