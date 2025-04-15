@@ -10,62 +10,62 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-Socket TCPinitializeServer(const unsigned short port, const char IPv) {
+Socket TCP_initialize_server(const unsigned short port, const char IPv) {
 
 	// switch the code on the protocol
-	auto protCode = IPv == 6 ? AF_INET6 : AF_INET;
+	auto protocol_version = IPv == 6 ? AF_INET6 : AF_INET;
 
 	// create the server socket descriptor, return -1 on failure
-	auto serverSocket = socket(
-	    protCode,                    // IPvx
+	auto server_socket = socket(
+	    protocol_version,            // IPvx
 	    SOCK_STREAM | SOCK_NONBLOCK, // reliable conn, multiple communication per socket, non blocking accept
 	    IPPROTO_TCP);                // Tcp protocol
 
-	if (serverSocket == INVALID_SOCKET) {
-		llog(LOG_FATAL, "[TCP] Impossible to create server Socket.\n\tReason: %d %s\n", errno, strerror(errno));
+	if (server_socket == INVALID_SOCKET) {
+		llog(LOG_FATAL, "[TCP] Impossible to create server Socket: %s\n", strerror(errno));
 		return INVALID_SOCKET;
 	}
 
 	llog(LOG_DEBUG, "[TCP] Created server socket\n");
 
-	int  enable = 1;
-	auto sso    = setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+	int  enable    = 1;
+	auto ss_option = setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
 
-	if (sso == -1) {
-		llog(LOG_ERROR, "[TCP] Could not set reusabe address for the server socket.\n\tReason: %d %s\n", errno, strerror(errno));
+	if (ss_option == -1) {
+		llog(LOG_ERROR, "[TCP] Could not set reusabe address for the server socket: %s\n", strerror(errno));
 	}
 
 	llog(LOG_DEBUG, "[TCP] Set REUSEADDR for the server socket\n");
 
 	// bind the socket	Reason: "activate the socket"
 	// return -1 on failure
-	int errorCode;
+	int errcode;
 
 	if (IPv == 6) {
 
 		// sockaddr_in serverAddr;
-		struct sockaddr_in6 serverAddr6;
-		inet_pton(AF_INET6, "::1", &serverAddr6.sin6_addr);
+		struct sockaddr_in6 server_addr_6;
+		inet_pton(AF_INET6, "::1", &server_addr_6.sin6_addr);
 
-		serverAddr6.sin6_family = AF_INET6;    // again IPv6
-		serverAddr6.sin6_port   = htons(port); // change to network byte order since its needed internally,
+		server_addr_6.sin6_family = AF_INET6;    // again IPv6
+		server_addr_6.sin6_port   = htons(port); // change to network byte order since its needed internally,
 		// network byte order is Big Endian, this machine is Little Endian
 
-		errorCode = bind(serverSocket, (struct sockaddr *)(&serverAddr6), sizeof(serverAddr6));
+		errcode = bind(server_socket, (struct sockaddr *)(&server_addr_6), sizeof(server_addr_6));
 	} else {
 		// sockaddr_in serverAddr;
-		struct sockaddr_in serverAddr;
+		struct sockaddr_in server_addr_4;
 
-		serverAddr.sin_family      = AF_INET;     // again IPv4
-		serverAddr.sin_addr.s_addr = INADDR_ANY;  // accept any type of ipv4 address
-		serverAddr.sin_port        = htons(port); // change to network byte order since its needed internally,
+		server_addr_4.sin_family      = AF_INET;     // again IPv4
+		server_addr_4.sin_addr.s_addr = INADDR_ANY;  // accept any type of ipv4 address
+		server_addr_4.sin_port        = htons(port); // change to network byte order since its needed internally,
 		// network byte order is Big Endian, this machine is Little Endian
 
-		errorCode = bind(serverSocket, (struct sockaddr *)(&serverAddr), sizeof(serverAddr));
+		errcode = bind(server_socket, (struct sockaddr *)(&server_addr_4), sizeof(server_addr_4));
 	}
 
-	if (errorCode == -1) {
-		llog(LOG_FATAL, "[TCP] Bind failed.\n\tReason: %d %s\n", errno, strerror(errno));
+	if (errcode == -1) {
+		llog(LOG_FATAL, "[TCP] Bind failed: %s\n", strerror(errno));
 		return INVALID_SOCKET;
 	}
 
@@ -75,10 +75,10 @@ Socket TCPinitializeServer(const unsigned short port, const char IPv) {
 	// SOcket
 	// MAXimum
 	// CONNections
-	errorCode = listen(serverSocket, SOMAXCONN);
+	errcode = listen(server_socket, SOMAXCONN);
 
-	if (errorCode == -1) {
-		llog(LOG_FATAL, "[TCP] Listening failed.\n\tReason: %d %s\n", errno, strerror(errno));
+	if (errcode == -1) {
+		llog(LOG_FATAL, "[TCP] Listening failed.: %s\n", strerror(errno));
 		return INVALID_SOCKET;
 	}
 
@@ -86,24 +86,24 @@ Socket TCPinitializeServer(const unsigned short port, const char IPv) {
 
 	llog(LOG_INFO, "[TCP] Server now listening at http://127.0.0.1:%d\n", port);
 
-	return serverSocket;
+	return server_socket;
 }
 
-Socket TCPinitializeClient(const unsigned short port, const char *server_name, const char IPv) {
+Socket TCP_initialize_client(const unsigned short port, const char *server_name, const char IPv) {
 
-	auto protCode = IPv == 6 ? AF_INET6 : AF_INET;
+	auto protocol_version = IPv == 6 ? AF_INET6 : AF_INET;
 
-	Socket clientSock = socket(protCode, SOCK_STREAM, IPPROTO_TCP);
+	Socket client_socket = socket(protocol_version, SOCK_STREAM, IPPROTO_TCP);
 
-	if (clientSock == INVALID_SOCKET) {
-		llog(LOG_FATAL, "Impossible to create server Socket.\n\tReason: %d %s\n", errno, strerror(errno));
+	if (client_socket == INVALID_SOCKET) {
+		llog(LOG_FATAL, "Impossible to create server Socket: %s\n", strerror(errno));
 		return INVALID_SOCKET;
 	}
 
-	struct hostent *server_hn = gethostbyname(server_name);
+	struct hostent *server_hostname = gethostbyname(server_name);
 
-	if (server_hn == nullptr) {
-		llog(LOG_FATAL, "Hostname requested is unrechable.\n\tReason. %d %s\n", errno, strerror(errno));
+	if (server_hostname == nullptr) {
+		llog(LOG_FATAL, "Hostname requested is unrechable: %s\n", strerror(errno));
 		return INVALID_SOCKET;
 	}
 
@@ -111,114 +111,110 @@ Socket TCPinitializeClient(const unsigned short port, const char *server_name, c
 
 	// set the entire server address struct to 0
 	memset(&serv_addr, 0, sizeof(serv_addr));
-	serv_addr.sin_family = (short unsigned int)(protCode);
+	serv_addr.sin_family = (short unsigned int)(protocol_version);
 
 	// copy the server ip from the server hostname to the server socket internet address
-	memcpy(&serv_addr.sin_addr.s_addr, server_hn->h_addr_list[0], (size_t)(server_hn->h_length));
+	memcpy(&serv_addr.sin_addr.s_addr, server_hostname->h_addr_list[0], (size_t)(server_hostname->h_length));
 	serv_addr.sin_port = htons(port);
 
-	if (connect(clientSock, (struct sockaddr *)(&serv_addr), sizeof(serv_addr)) == -1) {
-		llog(LOG_FATAL, "Connectionn to server failed.\n\tReason. %d %s\n", errno, strerror(errno));
+	if (connect(client_socket, (struct sockaddr *)(&serv_addr), sizeof(serv_addr)) == -1) {
+		llog(LOG_FATAL, "Connectionn to server failed: %s\n", strerror(errno));
 		return INVALID_SOCKET;
 	}
 
-	return clientSock;
+	return client_socket;
 }
 
-void TCPterminate(const Socket sck) {
+void TCP_terminate(const Socket sck) {
 
-	TCPshutdownSocket(sck);
-	TCPcloseSocket(sck);
+	TCP_shutdown_socket(sck);
+	TCP_close_socket(sck);
 
 	llog(LOG_DEBUG, "[TCP] Socket %d terminated\n", sck);
 }
 
-void TCPcloseSocket(const Socket sck) {
+void TCP_close_socket(const Socket sck) {
 
 	auto res = close(sck);
 
 	if (res < 0) {
-		llog(LOG_ERROR, "[TCP] Could not close socket %d\n\tReason: %d %s\n", sck, errno, strerror(errno));
+		llog(LOG_ERROR, "[TCP] Could not close socket %d: %s\n", sck, strerror(errno));
 	}
 }
 
-void TCPshutdownSocket(const Socket sck) {
+void TCP_shutdown_socket(const Socket sck) {
 
 	// shutdown for both ReaD and WRite
 	auto res = shutdown(sck, SHUT_RDWR);
 
 	if (res < 0) {
-		llog(LOG_ERROR, "[TCP] Could not shutdown socket %d\n\tReason: %d %s\n", sck, errno, strerror(errno));
+		llog(LOG_ERROR, "[TCP] Could not shutdown socket %d: %s\n", sck, strerror(errno));
 	}
 }
 
-ssize_t TCPreceiveSegment(const Socket sck, char **buff) {
+ssize_t TCP_receive_segment(const Socket sck, char **buff) {
 
 	char recvbuf[DEFAULT_BUFLEN];
 	// result is the amount of bytes received
-	ssize_t bytesReceived    = DEFAULT_BUFLEN;
-	ssize_t totBytesReceived = 0;
+	ssize_t curr_bytes_received  = 0;
+	ssize_t total_bytes_received = 0;
 
-	while (bytesReceived == DEFAULT_BUFLEN) {
-		bytesReceived = recv(sck, recvbuf, DEFAULT_BUFLEN, 0);
-		*buff         = (char *)(realloc(*buff, (size_t)(bytesReceived + totBytesReceived + 1)));
+	do {
+		// TODO: check if MSG_WAITALL is correct
+		curr_bytes_received = recv(sck, recvbuf, DEFAULT_BUFLEN, MSG_WAITALL);
+		size_t realloc_sz   = (size_t)(curr_bytes_received + total_bytes_received + 1);
+		*buff               = (char *)(realloc(*buff, realloc_sz));
 
-		memcpy(*buff, recvbuf, (size_t) (bytesReceived - totBytesReceived));
+		memcpy(*buff + total_bytes_received, recvbuf, (size_t)(curr_bytes_received));
 
-		totBytesReceived += bytesReceived;
-		(*buff)[totBytesReceived] = '\0';
+		total_bytes_received += curr_bytes_received;
+		(*buff)[total_bytes_received] = '\0';
+	} while (curr_bytes_received == DEFAULT_BUFLEN);
+
+	if (total_bytes_received > 0) {
+		llog(LOG_INFO, "[Socket %d] Received %ldB from client\n", sck, total_bytes_received);
 	}
 
-	if (totBytesReceived > 0) {
-		llog(LOG_INFO, "[Socket %d] Received %ldB from client\n", sck, totBytesReceived);
-	}
-
-	if (totBytesReceived == 0) {
+	if (total_bytes_received == 0) {
 		llog(LOG_INFO, "[Socket %d] Client has shut down the communication\n", sck);
 	}
 
-	if (totBytesReceived < 0) {
-		llog(LOG_ERROR, "[Socket %d] Failed to receive message\n\tReason: %d %s\n", sck, errno, strerror(errno));
+	if (total_bytes_received < 0) {
+		llog(LOG_ERROR, "[Socket %d] Failed to receive message: %s\n", sck, strerror(errno));
 	}
 
-	return totBytesReceived;
+	return total_bytes_received;
 }
 
-long TCPsendSegment(const Socket sck, const char *buff) {
+long TCP_send_segment(const Socket sck, const char *buff, const size_t size) {
 
-	auto size = strlen(buff);
-
-	auto bytesSent = send(sck, buff, size, 0);
-	if (bytesSent < 0) {
-		llog(LOG_ERROR, "[TCP] Failed to send message\n\tReason: %d %s\n", errno, strerror(errno));
+	auto bytes_sent = send(sck, buff, size, 0);
+	if (bytes_sent < 0) {
+		llog(LOG_ERROR, "[TCP] Failed to send message: %s\n", strerror(errno));
 	}
 
-	if (bytesSent != (ssize_t)(size)) {
-		llog(LOG_WARNING, "[TCP] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", size, bytesSent);
+	if (bytes_sent != (ssize_t)(size)) {
+		llog(LOG_WARNING, "[TCP] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", size, bytes_sent);
 	}
 
-	llog(LOG_INFO, "[TCP] Sent %ldB to client %d\n", bytesSent, sck);
+	llog(LOG_INFO, "[TCP] Sent %ldB to client %d\n", bytes_sent, sck);
 
-	return bytesSent;
+	return bytes_sent;
 }
 
-Socket TCPacceptClientSock(const Socket ssck) {
+Socket TCP_accept_client(const Socket ssck) {
 
-	// the client socket address
-	struct sockaddr clientAddr;
+	struct sockaddr client_address;
 
-	// size of the client socket address
-	socklen_t clientSize = sizeof(clientAddr);
+	socklen_t client_size = sizeof(client_address);
 
-	// get the socket (int) and the socket address fot the client
-	Socket client = accept(ssck, &clientAddr, &clientSize);
+	Socket client = accept(ssck, &client_address, &client_size);
 
-	// received and invalid socket
 	if (client == INVALID_SOCKET) {
 		return -1;
 	}
 
-	struct sockaddr_in *temp = (struct sockaddr_in *)(&clientAddr);
+	struct sockaddr_in *temp = (struct sockaddr_in *)(&client_address);
 
 	// everything fine, communicate on stdout
 	llog(LOG_INFO, "[TCP] Accepted client IP %s:%u\n", inet_ntoa(temp->sin_addr), ntohs(temp->sin_port));

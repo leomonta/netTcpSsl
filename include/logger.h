@@ -27,6 +27,9 @@ void set_log_level(logLevel ll);
  * the variadic arguments are passed, alongside format, to vprintf
  * it is suggested to use the `llog` for automatic file name, line number, and function name detection
  *
+ * internally it keeps a local buffer where the printf functions output to, then a single call to normal printf is executed and then an fflush(stdout)
+ * this makes it reasonably thread safe
+ *
  * @param[in] ll the log level of the message
  * @param[in] file_name the file to show at the log message
  * @param[in] line_num the line number to show in the log message
