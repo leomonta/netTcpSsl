@@ -7,6 +7,7 @@
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -93,17 +94,17 @@ Socket TCP_initialize_client(const unsigned short port, const char *server_name,
 
 	auto protocol_version = IPv == 6 ? AF_INET6 : AF_INET;
 
-	Socket client_socket = socket(protocol_version, SOCK_STREAM, IPPROTO_TCP);
+	Socket client_socket = socket(protocol_version, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
 
 	if (client_socket == INVALID_SOCKET) {
-		llog(LOG_FATAL, "Impossible to create server Socket: %s\n", strerror(errno));
+		llog(LOG_FATAL, "[TCP] Impossible to create server Socket: %s\n", strerror(errno));
 		return INVALID_SOCKET;
 	}
 
 	struct hostent *server_hostname = gethostbyname(server_name);
 
 	if (server_hostname == nullptr) {
-		llog(LOG_FATAL, "Hostname requested is unrechable: %s\n", strerror(errno));
+		llog(LOG_FATAL, "[TCP] Hostname requested is unrechable: %s\n", strerror(errno));
 		return INVALID_SOCKET;
 	}
 
@@ -118,8 +119,22 @@ Socket TCP_initialize_client(const unsigned short port, const char *server_name,
 	serv_addr.sin_port = htons(port);
 
 	if (connect(client_socket, (struct sockaddr *)(&serv_addr), sizeof(serv_addr)) == -1) {
-		llog(LOG_FATAL, "Connectionn to server failed: %s\n", strerror(errno));
-		return INVALID_SOCKET;
+		if (errno == EINPROGRESS) {
+			llog(LOG_DEBUG, "[TCP] EINPROGRESS returned. Waiting until the client socket is writible\n");
+			fd_set fds;
+
+			FD_ZERO(&fds);
+			FD_SET(client_socket, &fds);
+
+			struct timeval tv = {1000, 10};
+			select(client_socket + 1, NULL, &fds, NULL, &tv);
+
+			llog(LOG_DEBUG, "[TCP] EINPROGRESS returned. The client socket is now writable\n");
+			return client_socket;
+		} else {
+			llog(LOG_FATAL, "[TCP] Connectionn to server failed: %s\n", strerror(errno));
+			return INVALID_SOCKET;
+		}
 	}
 
 	return client_socket;
@@ -156,32 +171,35 @@ ssize_t TCP_receive_segment(const Socket sck, char **buff) {
 
 	char recvbuf[DEFAULT_BUFLEN];
 	// result is the amount of bytes received
-	ssize_t curr_bytes_received  = 0;
 	ssize_t total_bytes_received = 0;
 
-	do {
-		// TODO: check if MSG_WAITALL is correct
-		curr_bytes_received = recv(sck, recvbuf, DEFAULT_BUFLEN, MSG_WAITALL);
-		size_t realloc_sz   = (size_t)(curr_bytes_received + total_bytes_received + 1);
-		*buff               = (char *)(realloc(*buff, realloc_sz));
+	while (true) {
+		ssize_t curr_bytes_received = recv(sck, recvbuf, DEFAULT_BUFLEN, 0);
+
+		if (curr_bytes_received < 0) {
+			llog(LOG_ERROR, "[TCP %d] Failed to receive message: %s\n", sck, strerror(errno));
+			return -1;
+		}
+
+		if (curr_bytes_received == 0) {
+			llog(LOG_INFO, "[TCP %d] Client sent 0 bytes. The communicatation might have been shut down\n", sck);
+			return 0;
+		}
+
+		size_t realloc_sz = (size_t)(curr_bytes_received + total_bytes_received + 1);
+		*buff             = (char *)(realloc(*buff, realloc_sz));
 
 		memcpy(*buff + total_bytes_received, recvbuf, (size_t)(curr_bytes_received));
 
 		total_bytes_received += curr_bytes_received;
 		(*buff)[total_bytes_received] = '\0';
-	} while (curr_bytes_received == DEFAULT_BUFLEN);
 
-	if (total_bytes_received > 0) {
-		llog(LOG_INFO, "[Socket %d] Received %ldB from client\n", sck, total_bytes_received);
+		if (curr_bytes_received < DEFAULT_BUFLEN) {
+			break;
+		}
 	}
 
-	if (total_bytes_received == 0) {
-		llog(LOG_INFO, "[Socket %d] Client has shut down the communication\n", sck);
-	}
-
-	if (total_bytes_received < 0) {
-		llog(LOG_ERROR, "[Socket %d] Failed to receive message: %s\n", sck, strerror(errno));
-	}
+	llog(LOG_INFO, "[TCP %d] Received %ldB from client\n", sck, total_bytes_received);
 
 	return total_bytes_received;
 }

@@ -1,6 +1,7 @@
 #include "sslConn.h"
 
 #include "logger.h"
+#include "tcpConn.h"
 
 #include <openssl/err.h>
 
@@ -22,6 +23,7 @@ const char *SSL_ERR_STRING[] = {
 };
 
 void SSL_initialize() {
+
 	// make libssl and libcrypto errors readable, before library_init
 	SSL_load_error_strings();
 	llog(LOG_DEBUG, "[SSL] Loaded error strings\n");
@@ -37,12 +39,14 @@ void SSL_initialize() {
 }
 
 void SSL_terminate() {
+
 	ERR_free_strings();
 
 	llog(LOG_DEBUG, "[SSL] Error string fred\n");
 }
 
-SSL_CTX *SSL_create_context(const char* cert_filename, const char* key_filename) {
+SSL_CTX *SSL_create_context(const char *cert_filename, const char *key_filename) {
+
 	// TLS is the newer version of ssl
 	// use SSLv23_server_method() for sslv2, sslv3 and tslv1 compartibility
 	// create a framework to create ssl struct for connections
@@ -73,7 +77,7 @@ SSL_CTX *SSL_create_context(const char* cert_filename, const char* key_filename)
 
 	llog(LOG_DEBUG, "[SSL] Loaded server certificate '%s'\n", cert_filename);
 
-	errcode  = SSL_CTX_use_PrivateKey_file(res, key_filename, SSL_FILETYPE_PEM);
+	errcode = SSL_CTX_use_PrivateKey_file(res, key_filename, SSL_FILETYPE_PEM);
 
 	if (errcode != 1) {
 		ERR_print_errors_fp(stderr);
@@ -87,6 +91,7 @@ SSL_CTX *SSL_create_context(const char* cert_filename, const char* key_filename)
 }
 
 void SSL_destroy_context(SSL_CTX *ctx) {
+
 	// destroy and free the context
 	SSL_CTX_free(ctx);
 
@@ -94,6 +99,7 @@ void SSL_destroy_context(SSL_CTX *ctx) {
 }
 
 SSL *SSL_create_connection(SSL_CTX *ctx, const Socket client) {
+
 	// ssl is the actual struct that hold the connectiondata
 	auto res = SSL_new(ctx);
 
@@ -121,6 +127,7 @@ SSL *SSL_create_connection(SSL_CTX *ctx, const Socket client) {
 }
 
 void SSL_destroy_connection(SSL *ssl) {
+
 	// close the connection and free the data in the struct
 	SSL_shutdown(ssl);
 	SSL_free(ssl);
@@ -132,32 +139,38 @@ int SSL_receive_record(SSL *ssl, char **buff) {
 
 	char recvbuf[DEFAULT_BUFLEN];
 
-	int curr_bytes_received    = DEFAULT_BUFLEN;
+	int curr_bytes_received  = DEFAULT_BUFLEN;
 	int total_bytes_received = 0;
 
-	do {
+	while (true) {
+	
 		// if bytes received <= DEFAULT_BUFLEN, return the exact amount of byes received
 		curr_bytes_received = SSL_read(ssl, recvbuf, DEFAULT_BUFLEN);
 
 		if (curr_bytes_received > 0) {
-			llog(LOG_INFO, "[SSL] Received %dB from connection\n", curr_bytes_received);
-			size_t realloc_sz   = (size_t)(curr_bytes_received + total_bytes_received + 1);
-			*buff               = (char *)(realloc(*buff, realloc_sz));
+			size_t realloc_sz = (size_t)(curr_bytes_received + total_bytes_received + 1);
+			*buff             = (char *)(realloc(*buff, realloc_sz));
 
 			memcpy(*buff + total_bytes_received, recvbuf, (size_t)(curr_bytes_received));
 
 			total_bytes_received += curr_bytes_received;
 			(*buff)[total_bytes_received] = '\0';
+
+			if (curr_bytes_received < DEFAULT_BUFLEN) {
+				break;
+			}
+
 		}
 
 		if (curr_bytes_received < 0) {
 			ERR_print_errors_fp(stderr);
 			llog(LOG_ERROR, "[SSL] Could not read from the ssl connection\n");
+			return -1;
 		}
 
 		auto errcode = SSL_get_error(ssl, curr_bytes_received);
 		if (errcode == SSL_ERROR_SSL || errcode == SSL_ERROR_SYSCALL) {
-			llog(LOG_FATAL, "[SSL] The SSL library encoutered a fatal error %d -> %s\n", errno, strerror(errno));
+			llog(LOG_FATAL, "[SSL] The SSL library encoutered a fatal error: %s\n", strerror(errno));
 			return -1;
 		}
 
@@ -169,14 +182,16 @@ int SSL_receive_record(SSL *ssl, char **buff) {
 		if (errcode != SSL_ERROR_NONE) {
 			llog(LOG_DEBUG, "[SSL] Read failed with: %s\n", SSL_ERR_STRING[errcode]);
 		}
-	} while (SSL_pending(ssl) > 0);
+	}
+
+	llog(LOG_INFO, "[SSL] Received %dB from connection\n", total_bytes_received);
 
 	return curr_bytes_received;
 }
 
 int SSL_send_record(SSL *ssl, const char *buff, const size_t size) {
 
-	int errcode   = SSL_ERROR_NONE;
+	int errcode    = SSL_ERROR_NONE;
 	int bytes_sent = 0;
 
 	do {

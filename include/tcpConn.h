@@ -35,7 +35,7 @@ Socket TCP_initialize_server(const unsigned short port, const char IPv);
  *
  * @return the constructed client socket
  */
-Socket TCP_initialize_client(const unsigned short port, const char *serverName, const char IPv);
+Socket TCP_initialize_client(const unsigned short port, const char *server_name, const char IPv);
 
 /**
  * shorthand to close and shutdown a socket
