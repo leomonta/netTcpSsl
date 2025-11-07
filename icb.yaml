@@ -6,7 +6,7 @@ compiler:
 directories:
   project_dir: .
   exe_path_name: bin/libnetTcpSsl.a
-  include_dirs: [include, ext]
+  include_dirs: [include, ext, ../logger/]
   source_dirs: [src]
   temp_dir: obj
 

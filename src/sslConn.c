@@ -5,6 +5,11 @@
 
 #include <openssl/err.h>
 
+#define TEST_ALLOC(ptr) \
+if (ptr == NULL) {\
+	llog(LOG_FATAL, "[ALLOCATION] Allocation returned NULL: %d, %s\n", errno, strerror(errno)); \
+}
+
 const char *SSL_ERR_STRING[] = {
 
     "SSL_ERROR_NONE",
@@ -150,6 +155,7 @@ int SSL_receive_record(SSL *ssl, char **buff) {
 		if (curr_bytes_received > 0) {
 			size_t realloc_sz = (size_t)(curr_bytes_received + total_bytes_received + 1);
 			*buff             = (char *)(realloc(*buff, realloc_sz));
+			TEST_ALLOC(*buff);
 
 			memcpy(*buff + total_bytes_received, recvbuf, (size_t)(curr_bytes_received));
 

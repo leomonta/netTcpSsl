@@ -11,6 +11,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define TEST_ALLOC(ptr) \
+if (ptr == NULL) {\
+	llog(LOG_FATAL, "[ALLOCATION] Allocation returned NULL: %d, %s\n", errno, strerror(errno)); \
+}
+
 Socket TCP_initialize_server(const unsigned short port, const char IPv) {
 
 	// switch the code on the protocol
@@ -67,6 +72,7 @@ Socket TCP_initialize_server(const unsigned short port, const char IPv) {
 
 	if (errcode == -1) {
 		llog(LOG_FATAL, "[TCP] Bind failed: %s\n", strerror(errno));
+		TCP_terminate(server_socket);
 		return INVALID_SOCKET;
 	}
 
@@ -80,6 +86,7 @@ Socket TCP_initialize_server(const unsigned short port, const char IPv) {
 
 	if (errcode == -1) {
 		llog(LOG_FATAL, "[TCP] Listening failed.: %s\n", strerror(errno));
+		TCP_terminate(server_socket);
 		return INVALID_SOCKET;
 	}
 
@@ -105,6 +112,7 @@ Socket TCP_initialize_client(const unsigned short port, const char *server_name,
 
 	if (server_hostname == nullptr) {
 		llog(LOG_FATAL, "[TCP] Hostname requested is unrechable: %s\n", strerror(errno));
+		TCP_terminate(client_socket);
 		return INVALID_SOCKET;
 	}
 
@@ -133,6 +141,7 @@ Socket TCP_initialize_client(const unsigned short port, const char *server_name,
 			return client_socket;
 		} else {
 			llog(LOG_FATAL, "[TCP] Connectionn to server failed: %s\n", strerror(errno));
+			TCP_terminate(client_socket);
 			return INVALID_SOCKET;
 		}
 	}
@@ -188,6 +197,7 @@ ssize_t TCP_receive_segment(const Socket sck, char **buff) {
 
 		size_t realloc_sz = (size_t)(curr_bytes_received + total_bytes_received + 1);
 		*buff             = (char *)(realloc(*buff, realloc_sz));
+		TEST_ALLOC(*buff)
 
 		memcpy(*buff + total_bytes_received, recvbuf, (size_t)(curr_bytes_received));
 
