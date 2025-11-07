@@ -1,0 +1,23 @@
+compiler:
+  compiler_style: gcc
+  compiler_exe: gcc
+  linker_exe: ar
+
+directories:
+  project_dir: .
+  exe_path_name: bin/libnetTcpSsl.a
+  include_dirs: [include, ext]
+  source_dirs: [src]
+  temp_dir: obj
+
+debug:
+  compiler_args: -g3 -std=c2x -Wall -Wextra -Wconversion -fsanitize=leak -fsanitize=address
+  linker_args: rcs
+
+analyze:
+  compiler_args: -g3 -std=c2x -Wall -Wextra -Wconversion -fanalyzer
+  linker_args: rcs
+
+release:
+  compiler_args: -Ofast -std=c2x
+  linker_args: rcs
