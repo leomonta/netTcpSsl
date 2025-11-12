@@ -5,19 +5,21 @@ compiler:
 
 directories:
   project_dir: .
-  exe_path_name: bin/libnetTcpSsl.a
-  include_dirs: [include, ext, ../logger/]
+  exe_path_name: bin/lib.a
+  include_dirs: [include]
   source_dirs: [src]
   temp_dir: obj
 
-debug:
-  compiler_args: -g3 -std=c2x -Wall -Wextra -Wconversion -fsanitize=leak -fsanitize=address
+default:
   linker_args: rcs
+  scripts:
+    post: rename
+
+debug:
+  compiler_args: -g3 -std=c23 -Wall -Wextra -Wconversion -fsanitize=leak -fsanitize=address
 
 analyze:
-  compiler_args: -g3 -std=c2x -Wall -Wextra -Wconversion -fanalyzer
-  linker_args: rcs
+  compiler_args: -g3 -std=c23 -Wall -Wextra -Wconversion -fanalyzer
 
 release:
-  compiler_args: -Ofast -std=c2x
-  linker_args: rcs
+  compiler_args: -Ofast -std=c23
