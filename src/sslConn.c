@@ -5,10 +5,10 @@
 
 #include <openssl/err.h>
 
-#define TEST_ALLOC(ptr) \
-if (ptr == NULL) {\
-	llog(LOG_FATAL, "[ALLOCATION] Allocation returned NULL: %d, %s\n", errno, strerror(errno)); \
-}
+#define TEST_ALLOC(ptr)                                                                             \
+	if (ptr == NULL) {                                                                              \
+		llog(LOG_FATAL, "[ALLOCATION] Allocation returned NULL: %d, %s\n", errno, strerror(errno)); \
+	}
 
 const char *SSL_ERR_STRING[] = {
 
@@ -63,8 +63,8 @@ SSL_CTX *SSL_create_context(const char *cert_filename, const char *key_filename)
 	// the context could not be created
 	if (res == nullptr) {
 		ERR_print_errors_fp(stderr);
-		// Should alos always use my logger
 		llog(LOG_FATAL, "[SSl] Could not create context\n");
+		SSL_terminate();
 		return nullptr;
 	}
 
@@ -77,6 +77,8 @@ SSL_CTX *SSL_create_context(const char *cert_filename, const char *key_filename)
 	if (errcode != 1) {
 		ERR_print_errors_fp(stderr);
 		llog(LOG_FATAL, "[SSL] Could not load certificate file '%s'\n", cert_filename);
+		SSL_terminate();
+		SSL_destroy_context(res);
 		return nullptr;
 	}
 
@@ -87,6 +89,8 @@ SSL_CTX *SSL_create_context(const char *cert_filename, const char *key_filename)
 	if (errcode != 1) {
 		ERR_print_errors_fp(stderr);
 		llog(LOG_FATAL, "[SSL] Could not load private key file '%s'\n", key_filename);
+		SSL_terminate();
+		SSL_destroy_context(res);
 		return nullptr;
 	}
 
@@ -121,6 +125,7 @@ SSL *SSL_create_connection(SSL_CTX *ctx, const Socket client) {
 	if (err != 1) {
 		ERR_print_errors_fp(stderr);
 		llog(LOG_ERROR, "[SSL] Could not set the tcp client fd to the ssl connection\n");
+		SSL_destroy_connection(res);
 		return nullptr;
 	}
 
@@ -148,7 +153,7 @@ int SSL_receive_record(SSL *ssl, char **buff) {
 	int total_bytes_received = 0;
 
 	while (true) {
-	
+
 		// if bytes received <= DEFAULT_BUFLEN, return the exact amount of byes received
 		curr_bytes_received = SSL_read(ssl, recvbuf, DEFAULT_BUFLEN);
 
@@ -165,7 +170,6 @@ int SSL_receive_record(SSL *ssl, char **buff) {
 			if (curr_bytes_received < DEFAULT_BUFLEN) {
 				break;
 			}
-
 		}
 
 		if (curr_bytes_received < 0) {
