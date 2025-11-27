@@ -1,4 +1,5 @@
 compiler:
+  target: static
   compiler_style: gcc
   compiler_exe: gcc
   linker_exe: ar

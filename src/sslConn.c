@@ -225,10 +225,10 @@ int SSL_send_record(SSL *ssl, const char *buff, const size_t size) {
 	} while (errcode == SSL_ERROR_WANT_WRITE);
 
 	if (bytes_sent != (int)(size)) {
-		llog(LOG_WARNING, "[SSL] Mismatch between buffer size (%ldb) and bytes sent (%ldb)\n", size, bytes_sent);
+		llog(LOG_WARNING, "[SSL] Mismatch between buffer size (%ldb) and bytes sent (%db)\n", size, bytes_sent);
 	}
 
-	llog(LOG_INFO, "[SSL] Sent %ldB of data to client\n", bytes_sent);
+	llog(LOG_INFO, "[SSL] Sent %dB of data to client\n", bytes_sent);
 
 	return bytes_sent;
 }
